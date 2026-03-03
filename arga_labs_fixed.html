@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arga Labs — Incident Detail (Fixed)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── AlignUI Design Tokens ── */
+  :root {
+    --accent:        #F05023;
+    --accent-light:  #FEF0EC;
+    --text-primary:  #1A1A1A;
+    --text-secondary:#6B7280;
+    --text-muted:    #9CA3AF;
+    --bg-page:       #F5F5F7;
+    --bg-card:       #FFFFFF;
+    --bg-sidebar:    #FFFFFF;
+    --border:        #E5E5E5;
+    --border-strong: #D1D5DB;
+    --shadow-sm:     0 1px 2px rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.04);
+    --shadow-md:     0 4px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
+    --radius-card:   13px;
+    --radius-badge:  9px;
+    --radius-btn:    8px;
+    --sidebar-w:     220px;
+
+    /* Status colours */
+    --green:   #16A34A;
+    --green-bg:#DCFCE7;
+    --amber:   #D97706;
+    --amber-bg:#FEF3C7;
+    --red:     #DC2626;
+    --red-bg:  #FEE2E2;
+    --blue:    #2563EB;
+    --blue-bg: #DBEAFE;
+    --gray:    #6B7280;
+    --gray-bg: #F3F4F6;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-logo .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 13px;
+  }
+  .sidebar-logo span { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+
+  .nav-section { padding: 12px 8px 4px; }
+  .nav-label {
+    font-size: 10px; font-weight: 600; letter-spacing: .08em;
+    color: var(--text-muted); padding: 0 8px; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 10px; border-radius: 8px; cursor: pointer;
+    color: var(--text-secondary); font-size: 13.5px; font-weight: 500;
+    text-decoration: none; transition: background .12s, color .12s;
+  }
+  .nav-item:hover { background: var(--bg-page); color: var(--text-primary); }
+  .nav-item.active { background: var(--accent-light); color: var(--accent); }
+  .nav-item svg { flex-shrink: 0; }
+
+  /* FIX #8 — Logout separated from nav with a rule + gap */
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 8px;
+    border-top: 1px solid var(--border);
+  }
+  .nav-item.danger:hover { background: var(--red-bg); color: var(--red); }
+
+  /* ─── Main content ─── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 28px 28px 48px;
+    max-width: 960px;
+  }
+
+  /* ─── Topbar ─── */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 20px;
+  }
+  .breadcrumb { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 13px; }
+  .breadcrumb a { color: var(--text-muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--text-primary); }
+  .breadcrumb .sep { opacity: .5; }
+  .breadcrumb .current { color: var(--text-primary); font-weight: 500; }
+
+  /* ─── Page header ─── */
+  .page-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 20px; gap: 16px;
+  }
+  .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.3px; color: var(--text-primary); }
+  .page-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+
+  /* ─── Badges ─── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: var(--radius-badge);
+    font-size: 12px; font-weight: 600; line-height: 1;
+  }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* FIX #3 — Amber status pill */
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-amber .badge-dot { background: var(--amber); }
+  .badge-green  { background: var(--green-bg);  color: var(--green);  }
+  .badge-green  .badge-dot { background: var(--green); }
+  .badge-red    { background: var(--red-bg);    color: var(--red);    }
+  .badge-red    .badge-dot { background: var(--red); }
+  .badge-blue   { background: var(--blue-bg);   color: var(--blue);   }
+  .badge-blue   .badge-dot { background: var(--blue); }
+  .badge-gray   { background: var(--gray-bg);   color: var(--gray);   }
+  .badge-gray   .badge-dot { background: var(--gray); }
+
+  /* ─── Metrics strip ─── */
+  .metrics-strip {
+    display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    padding: 14px 18px;
+    min-width: 140px; flex: 1;
+  }
+  .metric-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 5px; }
+  .metric-value { font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -.4px; }
+  .metric-value.accent { color: var(--accent); }
+
+  /* FIX #2 — Tooltip for raw ms */
+  .has-tooltip { position: relative; cursor: default; }
+  .has-tooltip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: #1A1A1A; color: #fff; font-size: 11px; font-weight: 500;
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+    pointer-events: none; opacity: 0; transition: opacity .15s;
+    z-index: 10;
+  }
+  .has-tooltip:hover::after { opacity: 1; }
+
+  /* ─── Two-column layout ─── */
+  .layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+
+  /* ─── Card ─── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  /* FIX #1 — Section headings use dark neutral, NOT brand blue */
+  .card-title {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--text-primary);   /* was: #1E6BE6 / brand blue */
+  }
+  .card-body { padding: 16px 18px; }
+
+  /* ─── Detail rows ─── */
+  .detail-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key { color: var(--text-secondary); font-weight: 500; min-width: 120px; flex-shrink: 0; }
+  .detail-val { color: var(--text-primary); word-break: break-all; display: flex; align-items: center; gap: 6px; }
+
+  /* FIX #4 — Truncated trace ID + copy button */
+  .trace-id {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px; color: var(--text-secondary);
+    background: var(--bg-page); padding: 2px 7px; border-radius: 5px;
+  }
+  .copy-btn {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 2px 7px; cursor: pointer; font-size: 11px; color: var(--text-secondary);
+    transition: background .1s, color .1s; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .copy-btn:hover { background: var(--bg-page); color: var(--text-primary); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+  /* ─── Progress steps ─── */
+  .steps { padding: 4px 0; }
+  .step {
+    display: flex; align-items: flex-start; gap: 12px; padding: 10px 0;
+    position: relative;
+  }
+  .step:not(:last-child)::after {
+    content: '';
+    position: absolute; left: 12px; top: 28px;
+    width: 1px; height: calc(100% - 4px);
+    background: var(--border);
+  }
+
+  /* FIX #5 — Three distinct step states */
+  .step-icon {
+    width: 25px; height: 25px; flex-shrink: 0;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; z-index: 1;
+  }
+  .step-icon.done    { background: var(--green-bg); color: var(--green); }
+  .step-icon.active  { background: var(--accent-light); color: var(--accent); }
+  .step-icon.pending { background: var(--gray-bg); color: var(--text-muted); }
+
+  /* Spinner for active step */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid var(--accent-light);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+
+  .step-info { flex: 1; }
+  .step-name { font-size: 13.5px; font-weight: 500; color: var(--text-primary); }
+  .step-name.muted { color: var(--text-muted); }
+  .step-time { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ─── Fix & Root Cause content ─── */
+  .prose {
+    font-size: 13.5px; color: var(--text-secondary); line-height: 1.65;
+  }
+  .prose p + p { margin-top: 8px; }
+  .code-block {
+    background: #F8F9FA; border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px; color: var(--text-primary);
+    margin-top: 10px; overflow-x: auto; line-height: 1.6;
+  }
+  .code-block .kw  { color: #D97706; font-weight: 600; }
+  .code-block .str { color: #16A34A; }
+  .code-block .cmt { color: #9CA3AF; }
+
+  /* ─── Action button + progress (FIX #6) ─── */
+  .action-block { margin-top: 16px; }
+  .progress-wrap {
+    background: var(--bg-page); border-radius: 6px;
+    height: 6px; overflow: hidden; margin-bottom: 8px;
+  }
+  .progress-bar {
+    height: 100%; border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent) 0%, #FF7A52 100%);
+    width: 67%; transition: width .4s ease;
+  }
+  .progress-label { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: var(--radius-btn);
+    background: var(--accent); color: #fff;
+    font-size: 13.5px; font-weight: 600; cursor: pointer;
+    border: none; transition: background .12s, transform .08s;
+    box-shadow: 0 1px 4px rgba(240,80,35,.25);
+  }
+  .btn-primary:hover { background: #D94220; }
+  .btn-primary:active { transform: scale(.98); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: var(--radius-btn);
+    background: transparent; color: var(--text-secondary);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--border); transition: background .12s, color .12s;
+  }
+  .btn-ghost:hover { background: var(--bg-page); color: var(--text-primary); }
+
+  /* ─── FIX #7 — Incident Timeline (replaces empty dead zone) ─── */
+  .timeline { padding: 4px 0; }
+  .tl-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; position: relative;
+  }
+  .tl-item:not(:last-child)::after {
+    content: '';
+    position: absolute; left: 10px; top: 24px;
+    width: 1px; height: calc(100% - 4px);
+    background: var(--border);
+  }
+  .tl-dot {
+    width: 21px; height: 21px; flex-shrink: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; z-index: 1;
+  }
+  .tl-dot.error   { background: var(--red-bg); color: var(--red); font-weight: 700; }
+  .tl-dot.warn    { background: var(--amber-bg); color: var(--amber); }
+  .tl-dot.info    { background: var(--blue-bg); color: var(--blue); }
+  .tl-dot.success { background: var(--green-bg); color: var(--green); }
+  .tl-content { flex: 1; }
+  .tl-msg { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .tl-time { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ─── Right sidebar cards ─── */
+  .side-cards { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ─── Divider util ─── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+  /* ─── Scrollbar ─── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">A</div>
+    <span>Arga Labs</span>
+  </div>
+
+  <nav class="nav-section">
+    <div class="nav-label">Monitor</div>
+    <a class="nav-item" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Overview
+    </a>
+    <a class="nav-item active" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 9v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      Incidents
+    </a>
+    <a class="nav-item" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Traces
+    </a>
+    <a class="nav-item" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Logs
+    </a>
+  </nav>
+
+  <nav class="nav-section">
+    <div class="nav-label">Manage</div>
+    <a class="nav-item" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07"/><path d="M4.93 4.93A10 10 0 0 0 19.07 19.07"/></svg>
+      Settings
+    </a>
+    <a class="nav-item" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Team
+    </a>
+  </nav>
+
+  <!-- FIX #8 — Logout moved to footer, separated by border -->
+  <div class="sidebar-footer">
+    <a class="nav-item danger" href="#">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log out
+    </a>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+
+  <!-- Breadcrumb -->
+  <div class="topbar">
+    <div class="breadcrumb">
+      <a href="#">Incidents</a>
+      <span class="sep">/</span>
+      <span class="current">INC-2841</span>
+    </div>
+  </div>
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">High Latency on Checkout Service</div>
+      <div class="page-meta">
+        <!-- FIX #3 — Amber pill badge for Validating status -->
+        <span class="badge badge-amber">
+          <span class="badge-dot"></span>Validating
+        </span>
+        <span style="color:var(--text-muted);font-size:13px;">Opened Mar 1, 2026 · 10:42 AM</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;margin-top:4px;">
+      <button class="btn-ghost">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Share
+      </button>
+      <button class="btn-ghost">Assign</button>
+    </div>
+  </div>
+
+  <!-- Metrics strip -->
+  <div class="metrics-strip">
+    <div class="metric-card">
+      <div class="metric-label">Status</div>
+      <div class="metric-value" style="font-size:15px;">
+        <span class="badge badge-amber" style="font-size:13px;">
+          <span class="badge-dot"></span>Validating
+        </span>
+      </div>
+    </div>
+
+    <!-- FIX #2 — Human-readable duration, tooltip shows raw ms -->
+    <div class="metric-card">
+      <div class="metric-label">Duration</div>
+      <div class="metric-value accent has-tooltip" data-tip="988,505 ms (raw)">~16m 28s</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-label">Severity</div>
+      <div class="metric-value" style="font-size:15px;"><span class="badge badge-red">High</span></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Affected Service</div>
+      <div class="metric-value" style="font-size:14px;font-weight:600;">checkout-api</div>
+    </div>
+  </div>
+
+  <!-- Two-column body -->
+  <div class="layout">
+
+    <!-- LEFT column -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Root Cause card — FIX #1: heading is dark neutral -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Root Cause</span>
+          <span class="badge badge-gray">Auto-detected</span>
+        </div>
+        <div class="card-body">
+          <div class="prose">
+            <p>A slow database query in the <code style="font-family:monospace;background:var(--bg-page);padding:1px 5px;border-radius:4px;font-size:12px;">orders</code> table caused cascading timeouts across the checkout pipeline. The query performed a full table scan due to a missing index on <code style="font-family:monospace;background:var(--bg-page);padding:1px 5px;border-radius:4px;font-size:12px;">created_at</code>.</p>
+            <p>Average query time spiked from <strong>42ms → 988,505ms</strong> at 10:42 AM after a bulk data import removed and did not recreate composite index <code style="font-family:monospace;background:var(--bg-page);padding:1px 5px;border-radius:4px;font-size:12px;">idx_orders_user_date</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fix card — FIX #1: heading is dark neutral -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Suggested Fix</span>
+          <span class="badge badge-blue">Patch Ready</span>
+        </div>
+        <div class="card-body">
+          <div class="prose">
+            <p>Recreate the composite index on <code style="font-family:monospace;background:var(--bg-page);padding:1px 5px;border-radius:4px;font-size:12px;">orders(user_id, created_at)</code>. This will allow the query planner to use an index seek instead of a full scan, bringing latency back to baseline.</p>
+          </div>
+          <div class="code-block">
+<span class="cmt">-- Run against production replica first to confirm plan</span>
+<br><span class="kw">CREATE INDEX CONCURRENTLY</span> idx_orders_user_date
+<br>&nbsp;&nbsp;<span class="kw">ON</span> orders (user_id, created_at <span class="kw">DESC</span>);
+<br>
+<br><span class="cmt">-- Verify: query time should drop to &lt; 50ms</span>
+<br><span class="kw">EXPLAIN ANALYZE</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<br>&nbsp;&nbsp;<span class="kw">WHERE</span> user_id = <span class="str">$1</span> <span class="kw">ORDER BY</span> created_at <span class="kw">DESC LIMIT</span> 20;
+          </div>
+
+          <!-- FIX #6 — Progress bar shows deployment is in-progress, button active -->
+          <div class="action-block">
+            <div class="progress-wrap">
+              <div class="progress-bar"></div>
+            </div>
+            <div class="progress-label">Applying fix… 67% — index build in progress on replica</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-primary">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Apply Fix (67%)
+              </button>
+              <button class="btn-ghost">View Diff</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FIX #7 — Incident Timeline (previously empty dead zone) -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Incident Timeline</span>
+          <span style="font-size:12px;color:var(--text-muted);">All times UTC</span>
+        </div>
+        <div class="card-body" style="padding-top:8px;padding-bottom:8px;">
+          <div class="timeline">
+
+            <div class="tl-item">
+              <div class="tl-dot error">!</div>
+              <div class="tl-content">
+                <div class="tl-msg">Latency spike detected — P95 crossed 5s threshold</div>
+                <div class="tl-time">10:42:03 AM · checkout-api</div>
+              </div>
+            </div>
+
+            <div class="tl-item">
+              <div class="tl-dot error">!</div>
+              <div class="tl-content">
+                <div class="tl-msg">INC-2841 automatically created and assigned</div>
+                <div class="tl-time">10:42:08 AM · Alerting</div>
+              </div>
+            </div>
+
+            <div class="tl-item">
+              <div class="tl-dot warn">▲</div>
+              <div class="tl-content">
+                <div class="tl-msg">Bulk data import completed — index <code style="font-size:11px;font-family:monospace;">idx_orders_user_date</code> not recreated</div>
+                <div class="tl-time">10:38:51 AM · db-migrations · 4 min before spike</div>
+              </div>
+            </div>
+
+            <div class="tl-item">
+              <div class="tl-dot info">i</div>
+              <div class="tl-content">
+                <div class="tl-msg">Root cause identified — full table scan on <code style="font-size:11px;font-family:monospace;">orders</code></div>
+                <div class="tl-time">10:49:22 AM · Auto-analysis</div>
+              </div>
+            </div>
+
+            <div class="tl-item">
+              <div class="tl-dot info">i</div>
+              <div class="tl-content">
+                <div class="tl-msg">Fix patch generated and sent for validation</div>
+                <div class="tl-time">10:50:11 AM · AI Copilot</div>
+              </div>
+            </div>
+
+            <div class="tl-item">
+              <div class="tl-dot success">✓</div>
+              <div class="tl-content">
+                <div class="tl-msg">Index rebuild started on read replica (67% complete)</div>
+                <div class="tl-time">11:03:45 AM · db-replica-2</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /LEFT column -->
+
+    <!-- RIGHT column -->
+    <div class="side-cards">
+
+      <!-- Incident details -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Details</span>
+        </div>
+        <div class="card-body" style="padding:0 18px;">
+          <div class="detail-row">
+            <span class="detail-key">Severity</span>
+            <span class="detail-val"><span class="badge badge-red">High</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Service</span>
+            <span class="detail-val">checkout-api</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Environment</span>
+            <span class="detail-val">Production</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Duration</span>
+            <!-- FIX #2 — human-readable in detail pane too -->
+            <span class="detail-val has-tooltip" data-tip="988,505 ms (raw)" style="font-weight:600;color:var(--accent);">~16m 28s</span>
+          </div>
+          <!-- FIX #4 — Truncated trace ID + copy button -->
+          <div class="detail-row">
+            <span class="detail-key">Trace ID</span>
+            <span class="detail-val" style="gap:6px;flex-wrap:wrap;">
+              <span class="trace-id">42b92ef1…af78b</span>
+              <button class="copy-btn" id="copyBtn" onclick="copyTrace(this)">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-key">Assignee</span>
+            <span class="detail-val">
+              <span style="width:20px;height:20px;border-radius:50%;background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">JL</span>
+              Jamie Lee
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remediation progress steps — FIX #5: three distinct states -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Remediation Steps</span>
+        </div>
+        <div class="card-body" style="padding:8px 18px;">
+          <div class="steps">
+
+            <div class="step">
+              <div class="step-icon done">✓</div>
+              <div class="step-info">
+                <div class="step-name">Root cause identified</div>
+                <div class="step-time">Completed · 10:49 AM</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon done">✓</div>
+              <div class="step-info">
+                <div class="step-name">Fix patch generated</div>
+                <div class="step-time">Completed · 10:50 AM</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon active">
+                <div class="spinner"></div>
+              </div>
+              <div class="step-info">
+                <div class="step-name">Index rebuild on replica</div>
+                <div class="step-time">In progress · 67% — est. 4 min</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon pending">○</div>
+              <div class="step-info">
+                <div class="step-name muted">Apply to production</div>
+                <div class="step-time">Pending</div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon pending">○</div>
+              <div class="step-info">
+                <div class="step-name muted">Close & post-mortem</div>
+                <div class="step-time">Pending</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Related incidents -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Related Incidents</span>
+        </div>
+        <div class="card-body" style="padding:0 18px;">
+          <div class="detail-row">
+            <span class="detail-val" style="gap:8px;">
+              <span class="badge badge-gray">INC-2799</span>
+              <span style="font-size:13px;color:var(--text-secondary);">Slow checkout — bulk import Feb 12</span>
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-val" style="gap:8px;">
+              <span class="badge badge-gray">INC-2734</span>
+              <span style="font-size:13px;color:var(--text-secondary);">Index missing after migration</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /RIGHT column -->
+  </div><!-- /layout -->
+
+</main>
+
+<script>
+  const FULL_TRACE_ID = '42b92ef1c4a3d89f06eb35c17a8d2f91bcd043e6af78b';
+
+  function copyTrace(btn) {
+    navigator.clipboard.writeText(FULL_TRACE_ID).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.innerHTML = `<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

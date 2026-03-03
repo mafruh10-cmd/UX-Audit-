@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>UX Audit Report — Arga Labs · Saasfactor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:#F5F5F7;color:#1A1A1A;font-size:14px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+:root{
+  --accent:#F05023;--accent-light:#FEF0EC;
+  --text-1:#1A1A1A;--text-2:#4B5563;--text-3:#9CA3AF;
+  --border:#E5E5E5;--bg-card:#FFFFFF;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.07),0 1px 4px rgba(0,0,0,.04);
+  --radius:14px;--radius-sm:9px;
+}
+
+/* ── COVER ── */
+.cover{
+  background:#0D0D0D;position:relative;overflow:hidden;
+  padding:56px 48px 52px;
+}
+.cover::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 55% 65% at 92% 5%,rgba(240,80,35,.26) 0%,transparent 58%),
+    radial-gradient(ellipse 38% 45% at 5% 90%,rgba(240,80,35,.12) 0%,transparent 55%);
+}
+.cover::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:52px 52px;
+}
+.cover-inner{max-width:860px;margin:0 auto;position:relative;z-index:1;}
+.cover-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;}
+.cover-logo-wrap img{height:32px;display:block;}
+.cover-eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:#F05023;margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+.cover-eyebrow::before{content:'';width:20px;height:1.5px;background:#F05023;}
+.cover-title{
+  font-size:clamp(36px,5vw,58px);font-weight:800;line-height:1.06;
+  letter-spacing:-.04em;color:#FFFFFF;margin-bottom:14px;
+}
+.cover-title em{color:#F05023;font-style:normal}
+.cover-subtitle{font-size:15px;color:rgba(255,255,255,.45);line-height:1.7;max-width:480px;}
+.cover-line{width:48px;height:3px;background:#F05023;border-radius:2px;margin-top:28px;}
+
+/* ── PAGE WRAPPER ── */
+.page{max-width:860px;margin:0 auto;padding:0 24px 80px;}
+
+/* ── SECTION ── */
+.section{margin-top:44px;}
+.section-label{
+  font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:16px;display:flex;align-items:center;gap:10px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── META GRID ── */
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media(max-width:600px){.meta-grid{grid-template-columns:1fr 1fr;}}
+.meta-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px 18px;}
+.meta-card-label{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+.meta-card-value{font-size:13.5px;font-weight:600;color:var(--text-1);line-height:1.3;}
+.meta-card-value.accent{color:#F05023;font-size:22px;font-weight:800;letter-spacing:-.04em;}
+.meta-card-value a{color:#F05023;text-decoration:none}
+.meta-card-value a:hover{text-decoration:underline}
+
+/* ── SCORE CARD ── */
+.score-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:24px 28px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;}
+.score-ring{width:88px;height:88px;flex-shrink:0;position:relative;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;font-weight:800;letter-spacing:-.04em;color:var(--text-1);line-height:1;}
+.score-denom{font-size:11px;color:var(--text-3);margin-top:2px;}
+.score-info{flex:1;min-width:220px;}
+.score-info h3{font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:4px;}
+.score-info p{font-size:13.5px;color:var(--text-2);line-height:1.65;}
+.score-breakdown{display:flex;gap:20px;}
+.sev-item{text-align:center;}
+.sev-count{font-size:28px;font-weight:800;letter-spacing:-.04em;}
+.sev-label{font-size:11px;font-weight:600;color:var(--text-3);margin-top:2px;}
+.sev-item.high   .sev-count{color:#DC2626;}
+.sev-item.medium .sev-count{color:#D97706;}
+.sev-item.low    .sev-count{color:#6B7280;}
+
+/* ── ISSUES INDEX ── */
+.issues-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;}
+.issues-row:last-child{margin-bottom:0;}
+@media(max-width:580px){.issues-row{grid-template-columns:repeat(2,1fr);}}
+.index-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);
+  box-shadow:var(--shadow-sm);padding:14px 16px;
+  transition:box-shadow .15s,transform .12s;
+}
+.index-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
+.index-num{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px;}
+.index-name{font-size:12.5px;font-weight:600;color:var(--text-1);line-height:1.3;}
+.index-sev{margin-top:9px;}
+
+/* ── SCREENSHOT ── */
+.screenshot-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;}
+.screenshot-bar{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:#F5F5F7;}
+.dot-row{display:flex;gap:6px;}
+.dot-row span{width:10px;height:10px;border-radius:50%;}
+.dot-row .r{background:#FF5F56}.dot-row .y{background:#FFBD2E}.dot-row .g{background:#27C93F}
+.url-pill{flex:1;background:#EBEBEB;border-radius:6px;padding:4px 10px;font-size:11.5px;color:var(--text-3);font-family:'SF Mono','Courier New',monospace;}
+.screenshot-wrap img{width:100%;display:block;}
+.screenshot-caption{padding:10px 16px;font-size:11.5px;color:var(--text-3);border-top:1px solid var(--border);background:#F5F5F7;font-style:italic;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;line-height:1;}
+.badge-high  {background:#FEE2E2;color:#DC2626}
+.badge-medium{background:#FEF3C7;color:#D97706}
+.badge-low   {background:#F3F4F6;color:#6B7280}
+.badge-effort{background:#F3F4F6;color:#6B7280;border:1px solid var(--border)}
+.badge-area  {background:#FEF0EC;color:#F05023}
+
+/* ── ISSUE CARDS ── */
+.issue-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px;}
+.issue-card:last-child{margin-bottom:0;}
+.issue-card.sev-high  {border-top:3px solid #DC2626}
+.issue-card.sev-medium{border-top:3px solid #D97706}
+.issue-card.sev-low   {border-top:3px solid #9CA3AF}
+.issue-header{padding:18px 22px 14px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid var(--border);}
+.issue-num-badge{width:36px;height:36px;flex-shrink:0;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;background:#F8F9FA;color:var(--text-3);border:1px solid var(--border);}
+.issue-header-info{flex:1}
+.issue-title{font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--text-1);}
+.issue-tags{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+.issue-body{padding:16px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:580px){.issue-body{grid-template-columns:1fr;}}
+.issue-col-label{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px;}
+.issue-col-label.bad{color:#DC2626}.issue-col-label.good{color:#16A34A}
+.issue-col-box{border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.7;color:var(--text-2);}
+.issue-col-box.bad {background:#FFF7F7;border:1px solid #FEE2E2}
+.issue-col-box.good{background:#F0FDF4;border:1px solid #DCFCE7}
+.issue-col-box strong{color:var(--text-1);}
+.issue-col-box code{font-family:'SF Mono','Courier New',monospace;font-size:11.5px;background:rgba(0,0,0,.05);padding:1px 5px;border-radius:4px;color:var(--text-1);}
+.issue-rule{padding:12px 22px 14px;border-top:1px solid var(--border);background:#FAFAFA;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.rule-tag{display:inline-flex;align-items:center;gap:4px;background:#FFFFFF;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11.5px;color:var(--text-2);font-weight:500;}
+
+/* ── CTA SECTION ── */
+.cta-section{
+  background:#0D0D0D;position:relative;overflow:hidden;
+  margin-top:48px;padding:52px 24px;text-align:center;
+}
+.cta-section::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(240,80,35,.18) 0%,transparent 65%);
+}
+.cta-section::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:52px 52px;
+}
+.cta-inner{position:relative;z-index:1;max-width:520px;margin:0 auto;}
+.cta-logo{height:34px;display:block;margin:0 auto 18px;}
+.cta-name{font-size:28px;font-weight:800;letter-spacing:-.04em;color:#FFFFFF;margin-bottom:10px;}
+.cta-tagline{font-size:14px;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:24px;}
+.cta-links{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;}
+.cta-link{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:13.5px;font-weight:600;color:#FFFFFF;text-decoration:none;
+  border:1px solid rgba(255,255,255,.2);border-radius:24px;padding:8px 20px;
+  transition:border-color .15s,background .15s;
+}
+.cta-link:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.06);}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-inner">
+    <div class="cover-top">
+      <div class="cover-logo-wrap"><img src="data:image/png;base64,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" alt="Saasfactor"/></div>
+    </div>
+    <div class="cover-eyebrow">UX Audit Report · 2026</div>
+    <h1 class="cover-title">Arga Labs<br><em>Incident Detail</em> UI</h1>
+    <p class="cover-subtitle">Heuristic evaluation of the incident management interface against established UX principles, cognitive biases &amp; design patterns</p>
+    <div class="cover-line"></div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="page">
+
+  <div class="section">
+    <div class="section-label">01 · Audit Overview</div>
+    <div class="meta-grid">
+      <div class="meta-card"><div class="meta-card-label">Product</div><div class="meta-card-value">Arga Labs</div></div>
+      <div class="meta-card"><div class="meta-card-label">Category</div><div class="meta-card-value">Incident Management SaaS</div></div>
+      <div class="meta-card"><div class="meta-card-label">Audit Date</div><div class="meta-card-value">March 2, 2026</div></div>
+      <div class="meta-card"><div class="meta-card-label">Screen Audited</div><div class="meta-card-value">Incident Detail Page</div></div>
+      <div class="meta-card"><div class="meta-card-label">Issues Found</div><div class="meta-card-value accent">8</div></div>
+      <div class="meta-card"><div class="meta-card-label">Audit Method</div><div class="meta-card-value">Heuristic Evaluation</div></div>
+      <div class="meta-card"><div class="meta-card-label">Reference Standards</div><div class="meta-card-value">Nielsen's 10 Heuristics, Gestalt Laws, Cognitive Bias Principles</div></div>
+      <div class="meta-card"><div class="meta-card-label">Audited By</div><div class="meta-card-value">Saasfactor · <a href="https://www.saasfactor.co" target="_blank">saasfactor.co</a></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">02 · Summary Score</div>
+    <div class="score-card">
+      <div class="score-ring"><svg width="88" height="88" viewBox="0 0 88 88"><circle cx="44" cy="44" r="35" fill="none" stroke="#F3F4F6" stroke-width="7"/><circle cx="44" cy="44" r="35" fill="none" stroke="#F05023" stroke-width="7" stroke-linecap="round" stroke-dasharray="220" stroke-dashoffset="88"/></svg><div class="score-num">60<div class="score-denom">/ 100</div></div></div>
+      <div class="score-info"><h3>Needs Improvement</h3><p>The core layout and information architecture are sound, but multiple high-severity issues create unnecessary cognitive friction and risk of user error. Most fixes are low-effort and can be shipped quickly.</p></div>
+      <div class="score-breakdown">
+        <div class="sev-item high"><div class="sev-count">4</div><div class="sev-label">High</div></div>
+        <div class="sev-item medium"><div class="sev-count">3</div><div class="sev-label">Medium</div></div>
+        <div class="sev-item low"><div class="sev-count">1</div><div class="sev-label">Low</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">03 · Issues at a Glance</div>
+    <div class="issues-row">
+      <div class="index-card"><div class="index-num">Issue 02</div><div class="index-name">Unformatted Duration</div><div class="index-sev"><span class="badge badge-high">High</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 03</div><div class="index-name">Plain-Text Status</div><div class="index-sev"><span class="badge badge-high">High</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 05</div><div class="index-name">Indistinct Progress Steps</div><div class="index-sev"><span class="badge badge-high">High</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 06</div><div class="index-name">Disabled Button, No Context</div><div class="index-sev"><span class="badge badge-high">High</span></div></div>
+    </div>
+    <div class="issues-row">
+      <div class="index-card"><div class="index-num">Issue 01</div><div class="index-name">Non-Semantic Section Headings</div><div class="index-sev"><span class="badge badge-medium">Medium</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 04</div><div class="index-name">Untruncated Trace ID</div><div class="index-sev"><span class="badge badge-medium">Medium</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 07</div><div class="index-name">Empty Content Dead Zone</div><div class="index-sev"><span class="badge badge-medium">Medium</span></div></div>
+      <div class="index-card"><div class="index-num">Issue 08</div><div class="index-name">Destructive Action Proximity</div><div class="index-sev"><span class="badge badge-low">Low</span></div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">04 · Annotated Screen</div>
+    <div class="screenshot-wrap">
+      <div class="screenshot-bar">
+        <div class="dot-row"><span class="r"></span><span class="y"></span><span class="g"></span></div>
+        <div class="url-pill">app.argalabs.io/incidents/INC-2841</div>
+      </div>
+      <img src="./ux_annotated_only.jpg" alt="Annotated UI"/>
+      <div class="screenshot-caption">Original UI with numbered issue markers · See Section 05 for detailed findings</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">05 · Detailed Findings</div>
+    <div class="issue-card sev-medium">
+      <div class="issue-header"><div class="issue-num-badge">01</div><div class="issue-header-info"><div class="issue-title">Non-Semantic Section Headings</div><div class="issue-tags"><span class="badge badge-medium">Medium</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Visual Hierarchy</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">The "Root Cause" and "Fix" headings use the same brand blue (<code>#1E6BE6</code>) as interactive links. Users may try to click them, or fail to distinguish real links because they look identical.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Change headings to <strong>#1A1A1A</strong> dark neutral. Reserve brand blue exclusively for interactive elements, enforcing a clear rule: <strong>color = interactivity</strong>.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">📐 Nielsen H4 — Consistency &amp; Standards</span><span class="rule-tag">🎨 Color Semantics — color should not decorate if it also signals action</span><span class="rule-tag">📚 Refactoring UI</span></div>
+    </div>
+    <div class="issue-card sev-high">
+      <div class="issue-header"><div class="issue-num-badge">02</div><div class="issue-header-info"><div class="issue-title">Raw Millisecond Duration Value</div><div class="issue-tags"><span class="badge badge-high">High</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Data Readability</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">Duration shows as <code>988505ms</code> — a raw integer. Users must calculate mentally to understand this is ~16 minutes. Under incident stress this adds unnecessary cognitive load.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Display <strong>~16m 28s</strong>. Show <code>988,505 ms</code> in a tooltip on hover. Surface useful form first; expose precision on demand.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">🧠 Miller's Law — reduce cognitive arithmetic</span><span class="rule-tag">🔍 Progressive Disclosure — precision on demand</span><span class="rule-tag">📚 Practical UI — format numbers for context</span></div>
+    </div>
+    <div class="issue-card sev-high">
+      <div class="issue-header"><div class="issue-num-badge">03</div><div class="issue-header-info"><div class="issue-title">Plain-Text Status with No Visual Encoding</div><div class="issue-tags"><span class="badge badge-high">High</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Status Communication</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">Status "Validating" is unstyled body text — indistinguishable from any label. Users cannot assess incident state at a glance, especially when scanning a list of many incidents.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Render as a <strong>pill badge</strong>: colored dot + label on tinted background. Amber for "Validating", green for "Resolved", red for "Active". Pre-attentive color enables status recognition before reading.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">👁️ Pre-attentive Attributes — color before cognition</span><span class="rule-tag">📡 Nielsen H1 — Visibility of System Status</span><span class="rule-tag">📚 Psychology of Design — #34 Signal Detection Theory</span></div>
+    </div>
+    <div class="issue-card sev-medium">
+      <div class="issue-header"><div class="issue-num-badge">04</div><div class="issue-header-info"><div class="issue-title">Full Trace ID Hash Displayed Inline</div><div class="issue-tags"><span class="badge badge-medium">Medium</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Information Density</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">The full 45-character trace ID is displayed inline. It overwhelms the scan path, adds no immediate value, and provides no way to copy it — the only action users actually need.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Truncate to <code>42b92ef1…af78b</code>. Add a <strong>copy button</strong> that copies the full ID and shows "Copied!" for 2 seconds. Reduce noise; make the common action one click.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">⚡ Hick's Law — reduce information load</span><span class="rule-tag">🔍 Progressive Disclosure — expose complexity on demand</span><span class="rule-tag">📚 Don't Make Me Think — one obvious action per row</span></div>
+    </div>
+    <div class="issue-card sev-high">
+      <div class="issue-header"><div class="issue-num-badge">05</div><div class="issue-header-info"><div class="issue-title">Indistinguishable Progress Step States</div><div class="issue-tags"><span class="badge badge-high">High</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Process Visibility</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">All remediation steps use identical bullet markers. Completed, active, and pending steps look the same. Users cannot tell where they are in the process or what needs attention.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Three distinct states:<br><strong>✓ Completed</strong> — green filled circle<br><strong>⟳ In Progress</strong> — spinning orange ring<br><strong>○ Pending</strong> — empty gray circle, dimmed label</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">📡 Nielsen H1 — Visibility of System Status</span><span class="rule-tag">🔵 Recognition over Recall — show state, don't require memory</span><span class="rule-tag">📚 Designing User Interfaces</span></div>
+    </div>
+    <div class="issue-card sev-high">
+      <div class="issue-header"><div class="issue-num-badge">06</div><div class="issue-header-info"><div class="issue-title">Disabled CTA Button with No Explanation</div><div class="issue-tags"><span class="badge badge-high">High</span><span class="badge badge-effort">Effort: Medium</span><span class="badge badge-area">Action Clarity</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">"Apply Fix" is disabled with no context. Users don't know if they lack permission, a prerequisite is incomplete, or something is processing. A silent block erodes trust in the interface.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Show a <strong>progress bar</strong> with deployment stage ("67% — index build on replica"). Make the button active, label it <em>"Apply Fix (67%)"</em>. If blocked, show: "Waiting for replica sync…"</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">📡 Nielsen H1 — Visibility of System Status</span><span class="rule-tag">🚫 Nielsen H5 — Error Prevention — silent blocks confuse</span><span class="rule-tag">📚 Practical UI — never disable without explanation</span></div>
+    </div>
+    <div class="issue-card sev-medium">
+      <div class="issue-header"><div class="issue-num-badge">07</div><div class="issue-header-info"><div class="issue-title">Empty Content Dead Zone</div><div class="issue-tags"><span class="badge badge-medium">Medium</span><span class="badge badge-effort">Effort: Medium</span><span class="badge badge-area">Information Architecture</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">The lower third of the screen is entirely empty. This signals an incomplete layout and causes users to lose confidence while missing key contextual information needed for resolution.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Fill with an <strong>Incident Timeline</strong> — a chronological log of events with timestamps, actor labels, and severity icons. The most contextually relevant data for diagnosing and communicating about an incident.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">🗂️ Information Density — empty space signals incomplete UI</span><span class="rule-tag">🔗 Contextual Relevance — surface what users need at decision time</span><span class="rule-tag">📚 100 Things — people read in context</span></div>
+    </div>
+    <div class="issue-card sev-low">
+      <div class="issue-header"><div class="issue-num-badge">08</div><div class="issue-header-info"><div class="issue-title">Logout Adjacent to Primary Navigation</div><div class="issue-tags"><span class="badge badge-low">Low</span><span class="badge badge-effort">Effort: Low</span><span class="badge badge-area">Error Prevention</span></div></div></div>
+      <div class="issue-body"><div><div class="issue-col-label bad">✗ Current Behaviour</div><div class="issue-col-box bad">"Log out" sits immediately next to primary nav with no separation. During fast navigation under incident stress, users risk accidentally triggering logout and losing their session at a critical moment.</div></div><div><div class="issue-col-label good">✓ Recommended Fix</div><div class="issue-col-box good">Move Logout to a <strong>sidebar footer zone</strong> separated by a horizontal rule and ≥24px gap. Spatial distance reduces accidental activation probability per Fitts's Law.</div></div></div>
+      <div class="issue-rule"><span class="rule-tag">📏 Fitts's Law — spatial distance reduces mis-click risk</span><span class="rule-tag">🚫 Nielsen H5 — Error Prevention</span><span class="rule-tag">📚 Don't Make Me Think — isolate destructive actions</span></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-inner">
+    <img src="data:image/png;base64,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" class="cta-logo" alt="Saasfactor"/>
+    <div class="cta-tagline">We fix UX for better onboarding, activation, and retention in 60 days at a fixed cost.</div>
+    <div class="cta-links">
+      <a href="mailto:hi@saasfactor.co" class="cta-link">hi@saasfactor.co</a>
+      <a href="https://www.saasfactor.co" target="_blank" class="cta-link">saasfactor.co</a>
+    </div>
+  </div>
+</div>
+
+</body></html>

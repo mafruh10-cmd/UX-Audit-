@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>UX Audit — Saasfactor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:#F5F5F7;color:#1A1A1A;
+  font-size:14px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;min-height:100vh;
+}
+
+/* ── Header ── */
+.header{
+  background:#fff;border-bottom:1px solid #E5E5E5;
+  padding:0 32px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.header-left{display:flex;align-items:center;gap:10px;}
+.header-logo{height:26px;display:block;}
+.header-badge{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:#F05023;background:#FEF0EC;padding:2px 8px;border-radius:20px;
+}
+.header-meta{font-size:12px;color:#9CA3AF;}
+
+/* ── Main ── */
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px;}
+
+/* ── Card ── */
+.card{
+  background:#fff;border-radius:16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.05);
+  padding:40px;width:100%;max-width:520px;
+}
+
+/* ── Screens ── */
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── Upload ── */
+.drop-zone{
+  border:2px dashed #D1D5DB;border-radius:12px;
+  padding:48px 32px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;position:relative;
+}
+.drop-zone:hover,.drop-zone.dragover{border-color:#F05023;background:#FFF8F6;}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.drop-icon{
+  width:48px;height:48px;margin:0 auto 16px;
+  background:#F5F5F7;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+}
+.drop-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.drop-sub{font-size:13px;color:#6B7280;margin-bottom:12px;}
+.drop-rules{
+  font-size:11px;color:#9CA3AF;
+  padding:5px 12px;background:#F9FAFB;
+  border-radius:20px;display:inline-block;
+}
+
+/* Preview */
+.preview-wrap{margin-top:16px;border-radius:10px;overflow:hidden;border:1px solid #E5E5E5;display:none;}
+.preview-wrap img{width:100%;display:block;max-height:180px;object-fit:cover;}
+.preview-bar{
+  padding:10px 14px;font-size:12px;color:#4B5563;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid #E5E5E5;
+}
+.preview-remove{
+  background:none;border:none;cursor:pointer;
+  color:#9CA3AF;font-size:12px;font-family:inherit;
+}
+.preview-remove:hover{color:#DC2626;}
+
+/* ── Buttons ── */
+.btn{
+  width:100%;padding:13px 20px;border-radius:10px;
+  font-size:14px;font-weight:600;cursor:pointer;
+  border:none;transition:opacity .15s,transform .1s;
+  font-family:inherit;letter-spacing:-.01em;
+}
+.btn:active:not(:disabled){transform:scale(.98);}
+.btn-primary{background:#F05023;color:#fff;margin-top:20px;}
+.btn-primary:disabled{opacity:.4;cursor:default;}
+.btn-ghost{
+  background:transparent;color:#6B7280;
+  border:1px solid #E5E5E5;margin-top:12px;
+}
+.btn-ghost:hover{background:#F9FAFB;}
+.btn-sm{width:auto;padding:11px 24px;margin:0 auto;display:block;}
+
+/* ── Processing steps ── */
+.progress-header{margin-bottom:28px;}
+.progress-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;margin-bottom:16px;border:1px solid #E5E5E5;}
+.progress-title{font-size:20px;font-weight:700;}
+.progress-sub{font-size:13px;color:#6B7280;margin-top:4px;}
+
+.steps-list{list-style:none;display:flex;flex-direction:column;}
+.step-item{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 0;border-bottom:1px solid #F3F4F6;
+}
+.step-item:last-child{border-bottom:none;}
+
+.step-dot{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;transition:all .3s;
+}
+.step-dot.pending{background:#F3F4F6;color:#9CA3AF;}
+.step-dot.active{background:#FEF0EC;border:2px solid #F05023;}
+.step-dot.done{background:#F05023;color:#fff;}
+
+.step-label{font-size:13px;font-weight:500;transition:color .2s;}
+.step-item.pending .step-label{color:#9CA3AF;}
+.step-item.active  .step-label{color:#1A1A1A;font-weight:600;}
+.step-item.done    .step-label{color:#6B7280;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{
+  width:13px;height:13px;
+  border:2px solid #FBC8B4;border-top-color:#F05023;
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+
+/* ── Ready screen ── */
+.ready-icon{
+  width:52px;height:52px;background:#ECFDF5;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin-bottom:16px;
+}
+.score-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.score-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#F5F5F7;border-radius:20px;padding:6px 14px;
+}
+.score-num{font-size:20px;font-weight:800;color:#1A1A1A;}
+.score-lbl{font-size:12px;color:#6B7280;}
+.chip{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.chip-h{background:#FEE2E2;color:#DC2626;}
+.chip-m{background:#FEF3C7;color:#D97706;}
+.chip-l{background:#F3F4F6;color:#6B7280;}
+
+.summary-box{
+  background:#F9FAFB;border-radius:10px;
+  padding:14px 16px;margin-bottom:24px;
+  font-size:13px;color:#4B5563;line-height:1.7;
+}
+
+/* ── Form ── */
+.form-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;}
+.form-group{margin-bottom:14px;}
+.form-input{
+  width:100%;padding:10px 14px;
+  border:1px solid #E5E5E5;border-radius:8px;
+  font-size:14px;font-family:inherit;color:#1A1A1A;
+  background:#fff;outline:none;transition:border-color .15s;
+}
+.form-input:focus{border-color:#F05023;box-shadow:0 0 0 3px rgba(240,80,35,.08);}
+.form-input.error{border-color:#DC2626;}
+.form-error{font-size:11px;color:#DC2626;margin-top:4px;display:none;}
+.form-opt{font-size:11px;font-weight:400;color:#9CA3AF;}
+
+/* ── Done screen ── */
+.done-icon{
+  width:64px;height:64px;background:#ECFDF5;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+}
+
+/* ── Footer ── */
+.footer{text-align:center;padding:20px;font-size:12px;color:#9CA3AF;}
+.footer a{color:#9CA3AF;text-decoration:none;}
+.footer a:hover{color:#6B7280;}
+
+/* ── Error state ── */
+.error-banner{
+  background:#FFF1F0;border:1px solid #FCA5A5;border-radius:8px;
+  padding:12px 16px;margin-top:12px;
+  font-size:13px;color:#DC2626;display:none;
+}
+/* ── Server offline banner ── */
+.offline-banner{
+  position:fixed;top:56px;left:0;right:0;z-index:20;
+  background:#1A1A1A;color:#fff;
+  padding:12px 32px;font-size:13px;
+  display:none;align-items:center;justify-content:center;gap:10px;
+}
+.offline-banner code{
+  background:rgba(255,255,255,.12);border-radius:5px;
+  padding:2px 8px;font-family:monospace;font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- Server offline notice -->
+<div class="offline-banner" id="offlineBanner">
+  <span>⚠ Server not running.</span>
+  <span>In Terminal: <code>cd ~/Desktop/Claude/ux-audit-app && ./run.sh</code></span>
+  <span>then open <code>http://localhost:5000</code></span>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    {% if logo_dark %}
+      <img class="header-logo" src="data:image/png;base64,{{ logo_dark }}" alt="Saasfactor"/>
+    {% else %}
+      <span style="font-weight:700;font-size:15px;">Saasfactor</span>
+    {% endif %}
+    <span class="header-badge">UX Audit</span>
+  </div>
+  <span class="header-meta">Powered by AI</span>
+</header>
+
+<main class="main">
+
+  <!-- ── Screen 1: Upload ── -->
+  <div id="screen-upload" class="screen card active">
+    <div style="margin-bottom:24px;">
+      <h1 style="font-size:22px;font-weight:700;">Upload your UI screen</h1>
+      <p style="font-size:13px;color:#6B7280;margin-top:6px;">
+        Drop a single screenshot and we'll generate a full UX audit report.
+      </p>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg,image/webp"/>
+      <div class="drop-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+          stroke="#6B7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="m21 15-5-5L5 21"/>
+        </svg>
+      </div>
+      <p class="drop-title">Drop your screenshot here</p>
+      <p class="drop-sub">or click to browse</p>
+      <span class="drop-rules">One screen &nbsp;·&nbsp; Any size &nbsp;·&nbsp; PNG, JPG, WebP</span>
+    </div>
+
+    <div class="preview-wrap" id="previewWrap">
+      <img id="previewImg" src="" alt="Preview"/>
+      <div class="preview-bar">
+        <span id="previewName" style="font-weight:500;"></span>
+        <button class="preview-remove" onclick="clearFile()">✕ Remove</button>
+      </div>
+    </div>
+
+    <div class="error-banner" id="uploadError"></div>
+
+    <button class="btn btn-primary" id="auditBtn" disabled onclick="startAudit()">
+      Audit Now →
+    </button>
+  </div>
+
+
+  <!-- ── Screen 2: Processing ── -->
+  <div id="screen-processing" class="screen card">
+    <div class="progress-header">
+      <img id="thumbImg" class="progress-thumb" src="" alt=""/>
+      <div class="progress-title">Analyzing your UI</div>
+      <div class="progress-sub" id="progressSub">This takes about 30–45 seconds</div>
+    </div>
+    <ul class="steps-list" id="stepsList"></ul>
+  </div>
+
+
+  <!-- ── Screen 3: Report ready ── -->
+  <div id="screen-ready" class="screen card">
+    <div class="ready-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m5 13 4 4L19 7"/>
+      </svg>
+    </div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">Your audit is ready</h2>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:16px;" id="readyScreenName"></p>
+
+    <div class="score-row">
+      <div class="score-pill">
+        <span class="score-num" id="scoreNum">—</span>
+        <span style="color:#9CA3AF;font-size:13px;">/10</span>
+        <span class="score-lbl" id="scoreLbl"></span>
+      </div>
+      <div id="issueSummary" style="display:flex;gap:8px;"></div>
+    </div>
+
+    <div class="summary-box" id="readySummary"></div>
+
+    <div style="font-size:13px;font-weight:600;color:#1A1A1A;margin-bottom:16px;">
+      Enter your details to download the full report
+    </div>
+
+    <form id="downloadForm" onsubmit="return false;">
+      <div class="form-group">
+        <label class="form-label">Your name</label>
+        <input type="text" id="inputName" class="form-input" placeholder="Jane Smith"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Email address <span style="color:#F05023;">*</span>
+        </label>
+        <input type="email" id="inputEmail" class="form-input" placeholder="jane@company.com" required/>
+        <div class="form-error" id="emailError">Please enter a valid email address.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Website <span class="form-opt">(optional)</span>
+        </label>
+        <input type="text" id="inputWebsite" class="form-input" placeholder="company.com"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+        <button type="button" class="btn btn-primary" id="downloadBtn"
+          onclick="handleDownload('download')">
+          Download Report
+        </button>
+        <button type="button" class="btn btn-ghost" id="previewBtn"
+          onclick="handleDownload('preview')">
+          Preview in Browser
+        </button>
+      </div>
+    </form>
+  </div>
+
+
+  <!-- ── Screen 4: Done ── -->
+  <div id="screen-done" class="screen card" style="text-align:center;">
+    <div class="done-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m5 13 4 4L19 7"/>
+      </svg>
+    </div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Your report is ready</h2>
+    <p style="font-size:13px;color:#6B7280;margin-bottom:24px;">
+      Access your UX audit report below.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <button class="btn btn-primary btn-sm" onclick="doneDownload()">
+        Download Report
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="donePreview()">
+        Preview in Browser
+      </button>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="resetApp()">
+      Audit another screen
+    </button>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <a href="https://saasfactor.co" target="_blank">saasfactor.co</a>
+</footer>
+
+<script>
+const STEPS = [
+  'Parsing layout and structure',
+  'Identifying UX friction points',
+  'Evaluating visual hierarchy',
+  'Checking accessibility and clarity',
+  'Generating audit report',
+];
+
+let sessionId    = null;
+let selectedFile = null;
+let auditData    = null;
+let reportUrl    = null;
+
+// ── Init ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderSteps('pending');
+  checkServer();
+});
+
+async function checkServer() {
+  try {
+    const res = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
+    if (res.ok) return; // all good
+  } catch (_) {}
+  // Server unreachable — show banner and disable the button
+  document.getElementById('offlineBanner').style.display = 'flex';
+  document.getElementById('auditBtn').disabled = true;
+}
+
+// ── Screen switch ────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Drop zone ────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  const ok = ['image/png','image/jpeg','image/jpg','image/webp'];
+  if (!ok.includes(file.type)) return showUploadErr('Only PNG, JPG, or WebP images are accepted.');
+  if (file.size > 20 * 1024 * 1024) return showUploadErr('Image must be under 20 MB.');
+  hideUploadErr();
+
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('previewImg').src = e.target.result;
+    document.getElementById('thumbImg').src   = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('previewName').textContent = file.name;
+  document.getElementById('previewWrap').style.display = 'block';
+  document.getElementById('auditBtn').disabled = false;
+}
+
+function clearFile() {
+  selectedFile = null;
+  fileInput.value = '';
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('auditBtn').disabled = true;
+  hideUploadErr();
+}
+
+function showUploadErr(msg) {
+  const el = document.getElementById('uploadError');
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideUploadErr() {
+  document.getElementById('uploadError').style.display = 'none';
+}
+
+// ── Start audit ──────────────────────────────────
+async function startAudit() {
+  if (!selectedFile) return;
+  document.getElementById('auditBtn').disabled = true;
+  show('screen-processing');
+  renderSteps('pending');
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+
+  let res;
+  try {
+    res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) { const j = await res.json(); throw new Error(j.error || 'Upload failed'); }
+  } catch (e) {
+    const msg = e.message === 'Failed to fetch'
+      ? 'Cannot reach the server. Make sure ./run.sh is running, then refresh.'
+      : e.message;
+    showProcError(msg); return;
+  }
+
+  const { session_id } = await res.json();
+  sessionId = session_id;
+
+  const es = new EventSource(`/api/audit/${session_id}`);
+
+  es.onmessage = e => {
+    const d = JSON.parse(e.data);
+
+    if (d.type === 'step')     updateStep(d.step, d.status, d.label);
+    if (d.type === 'complete') { es.close(); auditData = d; fillReadyScreen(d); show('screen-ready'); }
+    if (d.type === 'error')    { es.close(); showProcError(d.message); }
+  };
+
+  es.onerror = () => { es.close(); showProcError('Connection lost. Please try again.'); };
+}
+
+// ── Steps rendering ──────────────────────────────
+function renderSteps(defaultStatus) {
+  document.getElementById('stepsList').innerHTML = STEPS.map((label, i) => `
+    <li class="step-item ${defaultStatus}" id="si-${i}">
+      <div class="step-dot ${defaultStatus}" id="sd-${i}">
+        ${defaultStatus === 'done' ? checkIcon() : i + 1}
+      </div>
+      <span class="step-label">${label}</span>
+    </li>`).join('');
+}
+
+function updateStep(idx, status, label) {
+  const item = document.getElementById(`si-${idx}`);
+  const dot  = document.getElementById(`sd-${idx}`);
+  if (!item || !dot) return;
+  item.className = `step-item ${status}`;
+  dot.className  = `step-dot ${status}`;
+  dot.innerHTML  = status === 'done'   ? checkIcon()
+                 : status === 'active' ? '<div class="spinner"></div>'
+                 : idx + 1;
+}
+
+function checkIcon() {
+  return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>';
+}
+
+function showProcError(msg) {
+  document.getElementById('progressSub').innerHTML =
+    `<span style="color:#DC2626;">${msg}</span>`;
+  document.getElementById('stepsList').innerHTML = `
+    <li style="padding:16px 0;text-align:center;">
+      <div style="font-size:13px;color:#DC2626;margin-bottom:14px;">${msg}</div>
+      <button class="btn btn-ghost btn-sm" onclick="resetApp()">Try again</button>
+    </li>`;
+}
+
+// ── Ready screen ─────────────────────────────────
+function fillReadyScreen(d) {
+  document.getElementById('readyScreenName').textContent = d.screen_name || '';
+  document.getElementById('scoreNum').textContent = d.score ?? '—';
+  document.getElementById('scoreLbl').textContent = d.score_label || '';
+  document.getElementById('readySummary').textContent = d.summary || '';
+
+  const chips = document.getElementById('issueSummary');
+  chips.innerHTML = '';
+  if (d.high)   chips.innerHTML += `<span class="chip chip-h">${d.high} High</span>`;
+  if (d.medium) chips.innerHTML += `<span class="chip chip-m">${d.medium} Medium</span>`;
+  if (d.low)    chips.innerHTML += `<span class="chip chip-l">${d.low} Low</span>`;
+}
+
+// ── Download / Preview ────────────────────────────
+let reportFilename = 'ux_audit.html';
+
+async function handleDownload(mode) {
+  const email = document.getElementById('inputEmail').value.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('inputEmail').classList.add('error');
+    document.getElementById('emailError').style.display = 'block';
+    return;
+  }
+  document.getElementById('inputEmail').classList.remove('error');
+  document.getElementById('emailError').style.display = 'none';
+
+  const downloadBtn = document.getElementById('downloadBtn');
+  const previewBtn  = document.getElementById('previewBtn');
+  downloadBtn.disabled = true;
+  previewBtn.disabled  = true;
+  downloadBtn.textContent = 'Preparing report…';
+
+  try {
+    const res = await fetch(`/api/download/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:    document.getElementById('inputName').value.trim(),
+        email,
+        website: document.getElementById('inputWebsite').value.trim(),
+      }),
+    });
+
+    if (!res.ok) { const j = await res.json(); throw new Error(j.error || 'Download failed'); }
+
+    const html = await res.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    reportUrl  = URL.createObjectURL(blob);
+
+    const slug = (auditData?.screen_name || 'screen').replace(/[^\w]/g, '_').toLowerCase();
+    reportFilename = `ux_audit_${slug}.html`;
+
+    if (mode === 'download') {
+      _triggerDownload(reportUrl, reportFilename);
+    } else {
+      window.open(reportUrl, '_blank');
+    }
+
+    show('screen-done');
+
+  } catch (err) {
+    downloadBtn.disabled    = false;
+    previewBtn.disabled     = false;
+    downloadBtn.textContent = 'Download Report';
+    document.getElementById('emailError').textContent = err.message;
+    document.getElementById('emailError').style.display = 'block';
+  }
+}
+
+function _triggerDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function doneDownload() {
+  if (reportUrl) _triggerDownload(reportUrl, reportFilename);
+}
+function donePreview() {
+  if (reportUrl) window.open(reportUrl, '_blank');
+}
+
+// ── Reset ────────────────────────────────────────
+function resetApp() {
+  sessionId = null; selectedFile = null; auditData = null;
+  reportUrl = null; reportFilename = 'ux_audit.html';
+  fileInput.value = '';
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('auditBtn').disabled = true;
+  document.getElementById('downloadForm').reset();
+  document.getElementById('emailError').style.display = 'none';
+  const db = document.getElementById('downloadBtn');
+  db.disabled = false; db.textContent = 'Download Report';
+  document.getElementById('previewBtn').disabled = false;
+  renderSteps('pending');
+  show('screen-upload');
+}
+</script>
+</body>
+</html>
