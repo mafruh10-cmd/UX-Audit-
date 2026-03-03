@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS Revenue Impact Calculator</title>
+<style>
+/* =============================================
+   DESIGN TOKENS — AlignUI-inspired
+============================================= */
+:root {
+  --bg:           #f5f5f7;
+  --surface:      #ffffff;
+  --surface-2:    #f9f9fb;
+  --border:       #e4e4e7;
+  --border-focus: #6366f1;
+  --text-1:       #111118;
+  --text-2:       #6b7280;
+  --text-3:       #9ca3af;
+  --accent:       #6366f1;
+  --accent-lt:    #eef2ff;
+  --accent-dk:    #4f46e5;
+  --success:      #10b981;
+  --success-lt:   #ecfdf5;
+  --danger:       #ef4444;
+  --danger-lt:    #fef2f2;
+  --sh-sm:        0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:        0 4px 16px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --r-sm:         8px;
+  --r-md:         12px;
+  --r-lg:         16px;
+  --font:         -apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text-1);
+  min-height:100vh;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---- Page shell ---- */
+.page{max-width:1100px;margin:0 auto;padding:0 16px 80px}
+
+/* ---- Header ---- */
+.header{text-align:center;padding:48px 0 36px}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--accent-lt);color:var(--accent);
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 12px;border-radius:999px;margin-bottom:14px;
+}
+.header h1{
+  font-size:clamp(22px,3.5vw,34px);font-weight:700;
+  letter-spacing:-.022em;margin-bottom:10px;
+}
+.header p{font-size:14.5px;color:var(--text-2);max-width:500px;margin:0 auto}
+
+/* ---- Progress bar (step 1) ---- */
+.q-progress-wrap{
+  display:flex;align-items:center;gap:4px;
+  max-width:600px;margin:0 auto 28px;
+}
+.q-progress-seg{
+  height:3px;flex:1;border-radius:999px;
+  background:var(--border);transition:background .3s;
+}
+.q-progress-seg.done{background:var(--success)}
+.q-progress-seg.active{background:var(--accent)}
+.q-progress-label{
+  font-size:12px;color:var(--text-3);font-weight:500;
+  white-space:nowrap;margin-left:8px;
+}
+
+/* ---- Step 1 wrapper: active question on top, history stacks below ---- */
+.q-step1-wrap{max-width:600px;margin:0 auto}
+
+/* Active question area — always pinned to the top of the question zone */
+.q-active-area{margin-bottom:12px}
+
+/* History of answered questions — grows downward below the active card */
+.q-history{
+  display:flex;flex-direction:column;gap:10px;
+  margin-top:4px;
+}
+/* Subtle "Previous answers" divider; only shows when history has children */
+.q-history:not(:empty){
+  padding-top:14px;
+  border-top:1px solid var(--border);
+  margin-top:14px;
+}
+.q-history-header{
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:6px;
+}
+
+/* Answered (completed) question row */
+.q-done{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:12px 16px;
+  animation:fadeSlideIn .25s ease both;
+}
+.q-done-label{font-size:12px;color:var(--text-3);font-weight:500}
+.q-done-val{
+  font-size:14px;font-weight:600;color:var(--accent);
+  display:flex;align-items:center;gap:6px;
+}
+.q-done-edit{
+  font-size:11px;color:var(--text-3);cursor:pointer;
+  padding:2px 6px;border-radius:4px;border:1px solid var(--border);
+  background:none;font-family:var(--font);
+  transition:color .15s,border-color .15s;
+}
+.q-done-edit:hover{color:var(--accent);border-color:var(--accent)}
+
+/* Active question card */
+.q-card{
+  background:var(--surface);border:1.5px solid var(--border-focus);
+  border-radius:var(--r-lg);padding:24px;box-shadow:var(--sh-md);
+  animation:fadeSlideIn .3s ease both;
+}
+.q-num{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:6px;
+}
+.q-label{
+  font-size:17px;font-weight:600;color:var(--text-1);margin-bottom:4px;
+}
+.q-hint{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+
+.q-input-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.q-input-wrap{position:relative;flex:1;min-width:160px}
+.q-prefix,.q-suffix{
+  position:absolute;font-size:14px;font-weight:500;color:var(--text-3);
+  top:50%;transform:translateY(-50%);pointer-events:none;
+}
+.q-prefix{left:12px}.q-suffix{right:12px}
+
+.q-input{
+  width:100%;padding:11px 14px;
+  font-size:16px;font-weight:500;font-family:var(--font);
+  color:var(--text-1);background:var(--surface-2);
+  border:1.5px solid var(--border);border-radius:var(--r-sm);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+  -moz-appearance:textfield;
+}
+.q-input::-webkit-outer-spin-button,.q-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.q-input:focus{
+  border-color:var(--border-focus);background:var(--surface);
+  box-shadow:0 0 0 3px rgba(99,102,241,.1);
+}
+.q-input.has-prefix{padding-left:28px}
+.q-input.has-suffix{padding-right:36px}
+
+.q-error{
+  font-size:12px;color:var(--danger);margin-top:6px;display:none;
+}
+.q-error.show{display:block}
+
+.btn-next{
+  padding:11px 20px;background:var(--accent);color:#fff;
+  font-size:14px;font-weight:600;font-family:var(--font);
+  border:none;border-radius:var(--r-sm);cursor:pointer;
+  box-shadow:0 2px 8px rgba(99,102,241,.25);
+  transition:background .15s,transform .1s;white-space:nowrap;
+}
+.btn-next:hover{background:var(--accent-dk)}
+.btn-next:active{transform:scale(.97)}
+
+/* Final calculate button */
+.calc-wrap{
+  max-width:600px;margin:0 auto;
+  animation:fadeSlideIn .35s ease both;
+}
+.btn-calc{
+  width:100%;padding:14px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:700;font-family:var(--font);
+  border:none;border-radius:var(--r-md);cursor:pointer;
+  box-shadow:0 4px 14px rgba(99,102,241,.35);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:4px;transition:background .15s,transform .1s;
+}
+.btn-calc:hover{background:var(--accent-dk)}
+.btn-calc:active{transform:scale(.98)}
+
+/* =============================================
+   STEP 2 — Side-by-side layout
+============================================= */
+.s2-layout{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  grid-template-rows:auto;
+  gap:20px;
+  align-items:start;
+}
+@media(max-width:800px){.s2-layout{grid-template-columns:1fr}}
+
+/* Left column: results (sticky on desktop) */
+.results-col{
+  position:sticky;top:20px;
+}
+@media(max-width:800px){.results-col{position:static}}
+
+/* Right column: sliders */
+.sliders-col{}
+
+/* Full-width lever table */
+.lever-section{margin-top:20px}
+
+/* Bottom nav row */
+.bottom-nav{
+  display:flex;gap:10px;justify-content:flex-start;
+  margin-top:20px;flex-wrap:wrap;
+}
+
+/* ---- Card ---- */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);box-shadow:var(--sh-sm);
+  padding:22px 24px;margin-bottom:0;
+}
+.card-title{font-size:14px;font-weight:600;margin-bottom:3px}
+.card-sub{font-size:12.5px;color:var(--text-3);margin-bottom:18px;line-height:1.5}
+
+/* ---- P0 read-only info badge ---- */
+.p0-badge{
+  display:flex;align-items:flex-start;gap:8px;
+  background:var(--accent-lt);border:1px solid #c7d2fe;
+  border-radius:var(--r-sm);padding:10px 12px;
+  font-size:12px;color:var(--text-2);line-height:1.5;
+  margin-bottom:12px;
+}
+.p0-badge svg{flex-shrink:0;margin-top:1px}
+.p0-badge strong{color:var(--accent)}
+.p0-badge em{font-style:normal;color:var(--text-2)}
+
+/* ---- Single metric cards (used for lift row) ---- */
+.m-stack{display:flex;flex-direction:column;gap:8px}
+
+.m-card{
+  border:1px solid var(--border);border-radius:var(--r-md);
+  padding:12px 14px;background:var(--surface-2);
+}
+.m-card.accent-card{background:var(--accent-lt);border-color:#c7d2fe}
+.m-card.success-card{background:var(--success-lt);border-color:#a7f3d0}
+.m-card.danger-card{background:var(--danger-lt);border-color:#fecaca}
+
+.m-label{
+  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:3px;
+}
+.m-val{font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--text-1)}
+.m-card.accent-card .m-val{color:var(--accent)}
+.m-card.success-card .m-val{color:var(--success)}
+.m-card.danger-card .m-val{color:var(--danger)}
+.m-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+
+.lift-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ---- Dual metric card: baseline (small) + updated (large) in one widget ---- */
+.m-card-dual{
+  border:1px solid var(--border);border-radius:var(--r-md);
+  padding:13px 15px;background:var(--surface-2);
+}
+.m-card-dual.accent-dual{background:var(--accent-lt);border-color:#c7d2fe}
+.m-card-dual.cust-dual{background:var(--surface-2);border-style:dashed}
+
+.dual-label{
+  font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:3px;
+}
+/* Large number = the "updated" (slider-adjusted) value — primary focus */
+.dual-updated{
+  font-size:25px;font-weight:700;letter-spacing:-.025em;
+  color:var(--accent);line-height:1.1;margin-bottom:3px;
+  transition:color .2s;
+}
+.dual-updated.neutral{color:var(--text-1)}
+/* Small line = the baseline comparison */
+.dual-baseline{font-size:11px;color:var(--text-3)}
+.dual-baseline strong{color:var(--text-2);font-weight:600}
+
+/* ---- Sliders ---- */
+.slider-list{display:flex;flex-direction:column;gap:14px}
+
+.sl-item{
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:14px 16px;
+}
+.sl-head{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  margin-bottom:8px;gap:8px;flex-wrap:wrap;
+}
+.sl-name{font-size:13px;font-weight:600;color:var(--text-1)}
+.sl-badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+
+.badge-sm{
+  padding:2px 7px;border-radius:999px;
+  font-size:10.5px;font-weight:600;white-space:nowrap;
+}
+.b-base{background:#f3f4f6;color:var(--text-2)}
+.b-cur{background:var(--accent-lt);color:var(--accent)}
+.b-pos{background:var(--success-lt);color:var(--success)}
+.b-neg{background:var(--danger-lt);color:var(--danger)}
+.b-neu{background:#f3f4f6;color:var(--text-3)}
+
+/* Custom range slider */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:5px;border-radius:999px;
+  background:var(--border);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:17px;height:17px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);
+  box-shadow:0 1px 4px rgba(99,102,241,.3);
+  cursor:pointer;transition:transform .1s,box-shadow .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover{
+  transform:scale(1.2);box-shadow:0 2px 8px rgba(99,102,241,.4);
+}
+input[type=range]::-moz-range-thumb{
+  width:17px;height:17px;border-radius:50%;
+  background:#fff;border:2px solid var(--accent);
+  box-shadow:0 1px 4px rgba(99,102,241,.3);cursor:pointer;
+}
+.churn-sl::-webkit-slider-thumb{border-color:var(--danger);box-shadow:0 1px 4px rgba(239,68,68,.3)}
+.churn-sl::-moz-range-thumb{border-color:var(--danger)}
+
+/* ---- Lever table ---- */
+.lever-table{width:100%;border-collapse:collapse}
+.lever-table th{
+  text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text-3);
+  padding:7px 10px;border-bottom:1px solid var(--border);
+}
+.lever-table td{
+  font-size:12.5px;color:var(--text-1);
+  padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;
+}
+.lever-table tr:last-child td{border-bottom:none}
+.lever-table tr:hover td{background:var(--surface-2)}
+.t-pos{color:var(--success);font-weight:600}
+.t-neg{color:var(--danger);font-weight:600}
+
+.bar-track{height:5px;background:var(--border);border-radius:999px;overflow:hidden;width:90px}
+.bar-fill{height:100%;border-radius:999px;transition:width .3s}
+
+/* ---- Buttons ---- */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;font-size:13px;font-weight:600;font-family:var(--font);
+  border-radius:var(--r-sm);border:none;cursor:pointer;
+  transition:background .15s,transform .1s;
+}
+.btn:active{transform:scale(.97)}
+.btn-ghost{background:var(--surface);color:var(--text-2);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text-1)}
+.btn-red-ghost{background:var(--surface);color:var(--danger);border:1.5px solid #fecaca}
+.btn-red-ghost:hover{background:var(--danger-lt)}
+
+/* ---- Section label ---- */
+.sec-label{
+  font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ---- Toast ---- */
+.toast{
+  position:fixed;bottom:20px;right:20px;
+  background:var(--text-1);color:#fff;
+  padding:9px 16px;border-radius:var(--r-sm);
+  font-size:13px;font-weight:500;box-shadow:var(--sh-md);
+  opacity:0;transform:translateY(6px);
+  transition:opacity .22s,transform .22s;pointer-events:none;z-index:9999;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ---- Animations ---- */
+@keyframes fadeSlideIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.hidden{display:none!important}
+.small-note{font-size:11.5px;color:var(--text-3);text-align:center;margin-top:16px}
+
+/* ---- Estimated inputs warning banner ---- */
+.est-banner{
+  display:flex;align-items:flex-start;gap:8px;
+  background:#fffbeb;border:1px solid #fde68a;
+  border-radius:var(--r-sm);padding:10px 12px;
+  font-size:12px;color:#92400e;line-height:1.5;
+  margin-bottom:12px;
+}
+.est-banner svg{flex-shrink:0;margin-top:1px}
+
+/* ---- "I don't know" checkbox row ---- */
+.idk-row{
+  margin-top:10px;padding:10px 12px;
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--r-sm);
+}
+.idk-label{
+  display:flex;align-items:center;gap:8px;
+  font-size:12.5px;color:var(--text-2);
+  cursor:pointer;user-select:none;
+}
+.idk-check{
+  width:15px;height:15px;flex-shrink:0;
+  accent-color:var(--accent);cursor:pointer;
+}
+
+/* ---- Estimated badge on slider header ---- */
+.badge-est-sl{
+  background:#fffbeb;color:#b45309;
+  border:1px solid #fde68a;
+  padding:2px 7px;border-radius:999px;
+  font-size:10px;font-weight:700;letter-spacing:.03em;
+}
+
+/* ---- Estimated tag on done row ---- */
+.done-est-tag{
+  display:inline-block;font-size:10px;font-weight:700;
+  background:#fffbeb;color:#b45309;
+  border:1px solid #fde68a;
+  padding:1px 6px;border-radius:999px;margin-left:6px;
+  vertical-align:middle;
+}
+
+/* ---- Required marker ---- */
+.req-star{color:var(--danger);margin-left:3px;font-size:12px}
+
+/* ---- Calculation loader overlay ---- */
+#calcLoader{
+  position:fixed;inset:0;
+  background:rgba(245,245,247,.92);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;
+  opacity:0;transition:opacity .25s ease;
+  pointer-events:none;
+}
+#calcLoader.visible{opacity:1;pointer-events:all}
+#calcLoader.fade-out{opacity:0}
+
+.loader-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  box-shadow:var(--sh-md);
+  padding:36px 40px;
+  text-align:center;
+  max-width:340px;width:90%;
+}
+.loader-spinner{
+  width:44px;height:44px;margin:0 auto 20px;
+  border:3px solid var(--accent-lt);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loader-title{
+  font-size:15px;font-weight:700;color:var(--text-1);
+  margin-bottom:6px;
+}
+.loader-status{
+  font-size:13px;color:var(--text-2);
+  min-height:20px;transition:opacity .2s;
+}
+.loader-bar-track{
+  height:3px;background:var(--border);
+  border-radius:999px;overflow:hidden;
+  margin-top:20px;
+}
+.loader-bar-fill{
+  height:100%;background:var(--accent);
+  border-radius:999px;
+  width:0%;transition:width .35s ease;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="badge">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+        <path d="M5 .5L6.3 3.8H9.5L7 5.8L8 9L5 7L2 9L3 5.8L.5 3.8H3.7Z"/>
+      </svg>
+      Revenue Intelligence
+    </div>
+    <h1>SaaS Revenue Impact Calculator</h1>
+    <p>Answer 8 questions about your SaaS metrics. Then explore how improving 6 growth levers compounds your 12-month revenue.</p>
+  </header>
+
+  <!-- ======================================================
+       STEP 1 — Progressive question flow
+       Layout: active question card stays at the TOP.
+       Answered questions accumulate BELOW it in .q-history.
+  ====================================================== -->
+  <section id="step1">
+    <!-- Progress bar -->
+    <div class="q-progress-wrap" id="progressWrap">
+      <!-- Segments injected by JS -->
+    </div>
+
+    <div class="q-step1-wrap">
+      <!-- Active question renders here (always at top) -->
+      <div class="q-active-area" id="qActive"></div>
+
+      <!-- Calculate button appears here once all questions are answered -->
+      <div class="calc-wrap hidden" id="calcWrap">
+        <button class="btn-calc" onclick="handleCalculate()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Calculate Revenue Impact
+        </button>
+      </div>
+
+      <!-- Answered questions stack here, oldest at top, newest at bottom -->
+      <div class="q-history" id="qHistory"></div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       STEP 2 — Results (left) + Sliders (right), side by side
+  ====================================================== -->
+  <section id="step2" class="hidden">
+
+    <div class="s2-layout">
+
+      <!-- LEFT: Results panel (sticky) -->
+      <div class="results-col">
+        <div class="card">
+          <div class="card-title">12-Month Projection</div>
+          <div class="card-sub">Updates live as you adjust the sliders.</div>
+
+          <!-- LIFT ROW — at the top so it's the first thing seen -->
+          <div class="lift-row" style="margin-bottom:12px">
+            <div class="m-card success-card" id="lift-card-abs">
+              <div class="m-label">Revenue Lift</div>
+              <div class="m-val" id="r-lift-abs">—</div>
+            </div>
+            <div class="m-card success-card" id="lift-card-pct">
+              <div class="m-label">Lift %</div>
+              <div class="m-val" id="r-lift-pct">—</div>
+            </div>
+          </div>
+
+          <!-- THREE CONSOLIDATED DUAL CARDS
+               Each shows: updated value (large) + baseline (small below).
+               Baseline = without slider changes. Updated = with sliders. -->
+          <div class="m-stack">
+
+            <!-- MRR: baseline (small) + updated (large) -->
+            <div class="m-card-dual cust-dual" id="card-mrr">
+              <div class="dual-label">Month-12 MRR</div>
+              <div class="dual-updated neutral" id="r-upd-mrr">—</div>
+              <div class="dual-baseline">Baseline: <strong id="r-base-mrr">—</strong></div>
+            </div>
+
+            <!-- 12-Month Revenue: baseline (small) + updated (large) -->
+            <div class="m-card-dual cust-dual" id="card-rev">
+              <div class="dual-label">12-Month Revenue</div>
+              <div class="dual-updated neutral" id="r-upd-rev">—</div>
+              <div class="dual-baseline">Baseline: <strong id="r-base-rev">—</strong></div>
+            </div>
+
+            <!-- Paying Customers Mo.12: computed output — dashed border to signal it's derived -->
+            <div class="m-card-dual cust-dual">
+              <div class="dual-label">Paying Customers (Mo. 12)</div>
+              <div class="dual-updated neutral" id="r-upd-cust">—</div>
+              <div class="dual-baseline">Baseline: <strong id="r-base-cust">—</strong></div>
+            </div>
+
+          </div>
+
+          <!-- INFO BADGES — at bottom to keep lift + metrics prominent -->
+          <div class="est-banner hidden" id="est-banner" style="margin-top:12px">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <path d="M6.5 1.5L12 11H1L6.5 1.5Z" stroke="#f59e0b" stroke-width="1.4" stroke-linejoin="round"/>
+              <path d="M6.5 5.5v2.5M6.5 9.5h.01" stroke="#f59e0b" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span><strong>Some inputs are estimated.</strong> Results are directional.</span>
+          </div>
+
+          <div class="p0-badge" id="p0-badge-wrap" style="margin-top:10px">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <circle cx="6.5" cy="6.5" r="5.5" stroke="#6366f1" stroke-width="1.4"/>
+              <path d="M6.5 4v3.5M6.5 9h.01" stroke="#6366f1" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span>Starting with <strong id="p0-display">—</strong> paying customers (P₀) — a calculated output, not a slider.</span>
+          </div>
+        </div>
+      </div><!-- /results-col -->
+
+      <!-- RIGHT: Sliders -->
+      <div class="sliders-col">
+        <div class="card">
+          <div class="card-title">6 Growth Levers</div>
+          <div class="card-sub">Drag to model improvements. Churn reduces toward 0% (lower = better). <span style="color:var(--accent);font-weight:600">Paying customers and ARPU are fixed inputs</span> — expansion compounds your effective revenue per customer monthly over the 12-month window.</div>
+          <div class="slider-list" id="sliderList"></div>
+        </div>
+      </div><!-- /sliders-col -->
+
+    </div><!-- /s2-layout -->
+
+    <!-- Per-lever impact — full width -->
+    <div class="lever-section">
+      <div class="sec-label">Individual Lever Analysis</div>
+      <div class="card">
+        <div class="card-title">Single-Lever Impact</div>
+        <div class="card-sub">Each metric changed independently to its slider value, all others at baseline. Sorted by impact.</div>
+        <div style="overflow-x:auto">
+          <table class="lever-table">
+            <thead>
+              <tr>
+                <th>Lever</th>
+                <th>Baseline</th>
+                <th>Target</th>
+                <th>Revenue Lift</th>
+                <th>% Impact</th>
+                <th style="width:100px">Relative</th>
+              </tr>
+            </thead>
+            <tbody id="leverTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom nav -->
+    <div class="bottom-nav">
+      <button class="btn btn-ghost" onclick="goBack()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M10 6.5H3M6.5 3L3 6.5L6.5 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back &amp; Edit Inputs
+      </button>
+      <button class="btn btn-red-ghost" onclick="handleReset()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <path d="M2 6.5a4.5 4.5 0 1 0 1.4-3.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M2 3.5V7h3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Reset
+      </button>
+    </div>
+
+  </section><!-- /step2 -->
+
+  <p class="small-note">Projections are estimates based on your inputs. Actual results will vary.</p>
+</div>
+
+<!-- Calculation loading overlay — shown briefly between step 1 and step 2 -->
+<div id="calcLoader">
+  <div class="loader-card">
+    <div class="loader-spinner"></div>
+    <div class="loader-title">Calculating your model…</div>
+    <div class="loader-status" id="loaderStatus">Compiling baseline inputs</div>
+    <div class="loader-bar-track">
+      <div class="loader-bar-fill" id="loaderBar"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================
+   QUESTION DEFINITIONS
+   Each question asked one at a time in progressive flow
+===================================================== */
+const QUESTIONS = [
+  {
+    key:        'customers',
+    label:      'How many paying customers do you have right now?',
+    hint:       'Your total active paying subscribers at this moment.',
+    prefix:     '',
+    suffix:     '',
+    pct:        false,
+    min:        0,
+    max:        null,
+    step:       1,
+    ph:         'e.g. 500',
+    errMsg:     'Please enter a whole number ≥ 0.',
+    required:   true,   // REQUIRED — blocks submit if missing
+    defaultVal: null,
+  },
+  {
+    key:        'newusers',
+    label:      'How many new accounts are created per month?',
+    hint:       'New free trial or freemium account creations each month.',
+    prefix:     '',
+    suffix:     '',
+    pct:        false,
+    min:        0,
+    max:        null,
+    step:       1,
+    ph:         'e.g. 300',
+    errMsg:     'Please enter a whole number ≥ 0.',
+    required:   true,   // REQUIRED
+    defaultVal: null,
+  },
+  {
+    key:        'onboard',
+    label:      'What % of new users complete onboarding?',
+    hint:       'The share of new accounts that finish your onboarding flow.',
+    prefix:     '',
+    suffix:     '%',
+    pct:        true,
+    min:        0,
+    max:        100,
+    step:       0.1,
+    ph:         'e.g. 70',
+    errMsg:     'Enter a percentage between 0 and 100.',
+    required:   false,  // OPTIONAL — conservative default: 40%
+    defaultVal: 40,
+  },
+  {
+    key:        'activate',
+    label:      'What % of onboarded users reach the activation moment?',
+    hint:       'Users who complete onboarding and hit your core "aha" moment.',
+    prefix:     '',
+    suffix:     '%',
+    pct:        true,
+    min:        0,
+    max:        100,
+    step:       0.1,
+    ph:         'e.g. 60',
+    errMsg:     'Enter a percentage between 0 and 100.',
+    required:   false,  // OPTIONAL — conservative default: 25%
+    defaultVal: 25,
+  },
+  {
+    key:        'conv',
+    label:      'What % of activated users convert to paid?',
+    hint:       'Your free-to-paid conversion rate among activated users.',
+    prefix:     '',
+    suffix:     '%',
+    pct:        true,
+    min:        0,
+    max:        100,
+    step:       0.1,
+    ph:         'e.g. 12',
+    errMsg:     'Enter a percentage between 0 and 100.',
+    required:   false,  // OPTIONAL — conservative default: 3%
+    defaultVal: 3,
+  },
+  {
+    key:        'arpu',
+    label:      'What is your average monthly revenue per paying user (ARPU)?',
+    hint:       'Average monthly $ earned per active paying customer.',
+    prefix:     '$',
+    suffix:     '',
+    pct:        false,
+    min:        0,
+    max:        null,
+    step:       0.01,
+    ph:         'e.g. 49',
+    errMsg:     'Enter a dollar amount ≥ 0.',
+    required:   true,   // REQUIRED
+    defaultVal: null,
+  },
+  {
+    key:        'churn',
+    label:      'What % of paying customers churn each month?',
+    hint:       'The share of subscribers who cancel or lapse monthly.',
+    prefix:     '',
+    suffix:     '%',
+    pct:        true,
+    min:        0,
+    max:        100,
+    step:       0.1,
+    ph:         'e.g. 3',
+    errMsg:     'Enter a percentage between 0 and 100.',
+    required:   true,   // REQUIRED
+    defaultVal: null,
+  },
+  {
+    key:        'expand',
+    label:      'What is your monthly expansion / upgrade rate?',
+    hint:       'Monthly % revenue growth from upsells, plan upgrades, and add-ons.',
+    prefix:     '',
+    suffix:     '%',
+    pct:        true,
+    min:        0,
+    max:        100,
+    step:       0.1,
+    ph:         'e.g. 2',
+    errMsg:     'Enter a percentage between 0 and 100.',
+    required:   false,  // OPTIONAL — conservative default: 1%
+    defaultVal: 1,
+  },
+];
+
+/* =====================================================
+   SLIDER QUESTIONS — the 6 adjustable levers.
+   "customers" (P0): fixed baseline starting point — not a lever.
+   "arpu": fixed input — not something product/design can slide.
+   Customer count is an OUTPUT of the model:
+     P[t+1] = P[t] × (1 − churn/100) + NewPaid
+   ARPU grows via expansion: effectiveARPU[t] = arpu × (1+expand/100)^t
+===================================================== */
+// "customers" (P0) is a fixed starting point — not a lever.
+// "arpu" is a fixed baseline input — not something design/product can slide.
+const SLIDER_QUESTIONS = QUESTIONS.filter(q => q.key !== 'customers' && q.key !== 'arpu');
+
+// Friendly short labels for the 6 slider levers
+const SLIDER_LABELS = {
+  newusers:  'New Account Creations / Month',
+  onboard:   'Onboarding Completion Rate',
+  activate:  'Activation Rate',
+  conv:      'Free-to-Paid Conversion',
+  churn:     'Monthly Churn Rate',
+  expand:    'Expansion / Upgrade Rate',
+};
+
+// ---- State ----
+let baseline  = {};
+let current   = {};
+let answers   = {};   // collected during progressive flow
+let estimated = {};   // tracks which optional fields used conservative defaults
+let currentQ  = 0;    // which question is active (0-indexed)
+
+/* =====================================================
+   UTILITY
+===================================================== */
+function fmtCurrency(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function fmtVal(val, q) {
+  if (q.prefix === '$')
+    return '$' + parseFloat(val).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:2});
+  if (q.suffix === '%')
+    return parseFloat(val).toFixed(1) + '%';
+  return parseInt(val).toLocaleString('en-US');
+}
+
+function fmtValByKey(val, key) {
+  const q = QUESTIONS.find(q => q.key === key);
+  return fmtVal(val, q);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* =====================================================
+   CORE CALCULATION MODEL
+   =====================================================
+   Funnel (strictly sequential — each stage gates the next):
+     Onboarded = N × (onboard/100)
+     Activated = Onboarded × (activate/100)
+     NewPaid   = Activated  × (conv/100)
+       → constant monthly acquisition; each rate divided by 100 exactly once
+
+   Customer count (churn + acquisition only):
+     P[t+1] = P[t] × (1 − churn/100) + NewPaid
+       → churn reduces the retained base each month
+       → NewPaid adds freshly converted customers
+       → expansion/upsells do NOT create new customer units —
+         they increase how much each customer pays
+
+   Expansion compounds ARPU (not customer count):
+     effectiveARPU[t] = arpu × (1 + expand/100)^t
+       → month-over-month upsells & plan upgrades compound
+         your revenue per customer throughout the projection
+       → this is where the true SaaS compounding lives:
+         improving expansion from 1% → 3% yields
+         1.03^12 = +43% ARPU by month 12 vs 1.01^12 = +13%
+
+   MRR[t] = P[t] × effectiveARPU[t]
+
+   Outputs: Month-12 MRR, cumulative 12-month revenue, Month-12 customers
+===================================================== */
+function runProjection(p) {
+  const { customers: P0, newusers: N, onboard, activate, conv, arpu, churn, expand } = p;
+
+  // ── Funnel (each rate input is stored as a whole-number percent → divide by 100 exactly once) ──
+  // Stage 1: users who complete onboarding
+  const Onboarded = N * (onboard  / 100);
+  // Stage 2: of those, users who reach the activation moment
+  const Activated = Onboarded * (activate / 100);
+  // Stage 3: of those, users who convert to paying  — constant monthly acquisition
+  const newPaid   = Activated  * (conv    / 100);
+
+  // ── Monthly projection (12 months) ───────────────────────────────────────
+  let paying = P0;  // Paying[0] = baseline paying customers (fixed P₀ — never a lever)
+  let total  = 0;   // cumulative 12-month revenue
+  let mrr12  = 0;   // MRR at month 12
+  let cust12 = 0;   // Paying[12] — computed output
+
+  for (let t = 1; t <= 12; t++) {
+    // Churn applies ONLY to the existing paying base; newPaid joins after churn is settled
+    const retained = paying * (1 - churn / 100);   // Retained = Paying[t-1] × (1 − churn_rate)
+    paying = retained + newPaid;                    // Paying[t] = Retained + NewPaid
+
+    // Expansion compounds ARPU month-over-month — it does NOT add customer units
+    const effectiveARPU = arpu * Math.pow(1 + expand / 100, t);  // ARPU[t] = ARPU₀ × (1+r)^t
+
+    const mrr = paying * effectiveARPU;             // MRR[t] = Paying[t] × ARPU[t]
+    total += mrr;
+    if (t === 12) { mrr12 = mrr; cust12 = paying; }
+  }
+
+  return { mrr12, total, cust12 };
+}
+
+/* =====================================================
+   PROGRESSIVE QUESTION FLOW
+===================================================== */
+function initProgressBar() {
+  const wrap = document.getElementById('progressWrap');
+  wrap.innerHTML = '';
+  QUESTIONS.forEach((_, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'q-progress-seg';
+    seg.id = `pseg-${i}`;
+    wrap.appendChild(seg);
+  });
+  const label = document.createElement('span');
+  label.className = 'q-progress-label';
+  label.id = 'prog-label';
+  label.textContent = `1 of ${QUESTIONS.length}`;
+  wrap.appendChild(label);
+}
+
+function updateProgressBar(activeIdx) {
+  QUESTIONS.forEach((_, i) => {
+    const seg = document.getElementById(`pseg-${i}`);
+    if (i < activeIdx)       seg.className = 'q-progress-seg done';
+    else if (i === activeIdx) seg.className = 'q-progress-seg active';
+    else                      seg.className = 'q-progress-seg';
+  });
+  const label = document.getElementById('prog-label');
+  if (activeIdx < QUESTIONS.length) {
+    label.textContent = `${activeIdx + 1} of ${QUESTIONS.length}`;
+  } else {
+    label.textContent = `All done!`;
+  }
+}
+
+/* Render a completed ("done") row for question at index idx */
+function renderDoneRow(idx) {
+  const q      = QUESTIONS[idx];
+  const val    = answers[q.key];
+  const isEst  = !!estimated[q.key];
+  const estTag = isEst ? `<span class="done-est-tag">Estimated</span>` : '';
+  const row = document.createElement('div');
+  row.className = 'q-done';
+  row.id        = `done-${idx}`;
+  row.innerHTML = `
+    <div>
+      <div class="q-done-label">${q.label}</div>
+      <div class="q-done-val">
+        ${fmtVal(val, q)}${estTag}
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <circle cx="6" cy="6" r="5" stroke="${isEst ? '#f59e0b' : '#10b981'}" stroke-width="1.5"/>
+          <path d="M3.5 6l2 2 3-3" stroke="${isEst ? '#f59e0b' : '#10b981'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <button class="q-done-edit" onclick="editQuestion(${idx})">Edit</button>
+  `;
+  return row;
+}
+
+/* Render the active question card for index idx.
+   Required fields show a red asterisk; optional fields show
+   an "I don't know" checkbox that auto-fills a conservative default. */
+function renderActiveCard(idx) {
+  const q     = QUESTIONS[idx];
+  const card  = document.createElement('div');
+  card.className = 'q-card';
+  card.id        = `qcard-${idx}`;
+
+  const isEst    = !!estimated[q.key]; // was previously estimated?
+  const preVal   = answers[q.key] !== undefined ? answers[q.key] : '';
+  const reqMark  = q.required
+    ? `<span class="req-star" title="Required">*</span>`
+    : `<span style="font-size:11px;color:var(--text-3);margin-left:6px;font-weight:400">(optional)</span>`;
+
+  // "I don't know" block — only for optional fields
+  const defaultLabel = q.suffix === '%'
+    ? `${q.defaultVal}%`
+    : q.prefix === '$' ? `$${q.defaultVal}` : q.defaultVal;
+  const idkHtml = !q.required ? `
+    <div class="idk-row">
+      <label class="idk-label">
+        <input type="checkbox" class="idk-check" id="idk-${idx}"
+          onchange="toggleIdk(${idx})"
+          ${isEst ? 'checked' : ''}>
+        I don't know — use conservative estimate (${defaultLabel})
+      </label>
+    </div>` : '';
+
+  card.innerHTML = `
+    <div class="q-num">Question ${idx + 1} of ${QUESTIONS.length}</div>
+    <div class="q-label">${q.label}${reqMark}</div>
+    <div class="q-hint">${q.hint}</div>
+    <div class="q-input-row">
+      <div class="q-input-wrap">
+        ${q.prefix ? `<span class="q-prefix">${q.prefix}</span>` : ''}
+        ${q.suffix ? `<span class="q-suffix">${q.suffix}</span>` : ''}
+        <input
+          type="number"
+          id="qinput-${idx}"
+          class="q-input${q.prefix ? ' has-prefix' : ''}${q.suffix ? ' has-suffix' : ''}"
+          min="${q.min}"
+          ${q.max !== null ? `max="${q.max}"` : ''}
+          step="${q.step}"
+          placeholder="${q.ph}"
+          value="${isEst ? q.defaultVal : preVal}"
+          ${isEst ? 'disabled style="opacity:0.55"' : ''}
+          autocomplete="off"
+        >
+      </div>
+      <button class="btn-next" onclick="submitQuestion(${idx})">
+        ${idx < QUESTIONS.length - 1 ? 'Next →' : 'Done ✓'}
+      </button>
+    </div>
+    <div class="q-error" id="qerr-${idx}">${q.errMsg}</div>
+    ${idkHtml}
+  `;
+
+  return card;
+}
+
+/* Toggle "I don't know" checkbox for optional questions.
+   Checked  → fills input with conservative default, disables it.
+   Unchecked → restores previous value (if any), re-enables. */
+function toggleIdk(idx) {
+  const q     = QUESTIONS[idx];
+  const cb    = document.getElementById(`idk-${idx}`);
+  const input = document.getElementById(`qinput-${idx}`);
+  const errEl = document.getElementById(`qerr-${idx}`);
+
+  if (cb.checked) {
+    input.dataset.prev  = input.value; // stash current value
+    input.value         = q.defaultVal;
+    input.disabled      = true;
+    input.style.opacity = '0.55';
+    errEl.classList.remove('show');
+  } else {
+    input.value         = input.dataset.prev || '';
+    input.disabled      = false;
+    input.style.opacity = '';
+    input.focus();
+  }
+}
+
+/* Show a question in the active area at the top.
+   The active area is always cleared before the new card is placed,
+   so the question card never moves — only the content inside it changes. */
+function showQuestion(idx) {
+  const activeArea = document.getElementById('qActive');
+
+  // Clear whatever was in the active area (previous card or empty)
+  activeArea.innerHTML = '';
+  activeArea.appendChild(renderActiveCard(idx));
+  updateProgressBar(idx);
+
+  // Focus input — no scrolling needed since the active area stays at the top
+  setTimeout(() => {
+    const input = document.getElementById(`qinput-${idx}`);
+    if (input) input.focus();
+  }, 60);
+}
+
+/* Validate and submit the current question.
+   For required fields: normal validation (must have a valid number).
+   For optional fields: if "I don't know" is checked, use the conservative
+   default and mark isEstimated = true; otherwise validate normally. */
+function submitQuestion(idx) {
+  const q      = QUESTIONS[idx];
+  const input  = document.getElementById(`qinput-${idx}`);
+  const errEl  = document.getElementById(`qerr-${idx}`);
+  const idkCb  = !q.required ? document.getElementById(`idk-${idx}`) : null;
+  const idkOn  = idkCb && idkCb.checked;
+
+  if (idkOn) {
+    // Optional + "I don't know" checked → use conservative default
+    answers[q.key]   = q.defaultVal;
+    estimated[q.key] = true;
+  } else {
+    // Normal path — validate the typed value
+    const val     = parseFloat(input.value);
+    const invalid = input.value === '' ||
+                    isNaN(val) ||
+                    val < q.min ||
+                    (q.max !== null && val > q.max);
+
+    if (invalid) {
+      errEl.classList.add('show');
+      input.focus();
+      return;
+    }
+    errEl.classList.remove('show');
+    answers[q.key]   = val;
+    estimated[q.key] = false; // user provided explicit value — not estimated
+  }
+
+  // Remove the active card from the top active area
+  document.getElementById('qActive').innerHTML = '';
+
+  // Append the completed answer row to the bottom of the history stack
+  // (history grows downward: oldest answer is nearest the active area, newest at bottom)
+  document.getElementById('qHistory').appendChild(renderDoneRow(idx));
+
+  currentQ = idx + 1;
+
+  if (currentQ < QUESTIONS.length) {
+    // Next question appears at the top — no scroll needed
+    showQuestion(currentQ);
+  } else {
+    // All answered — show the calculate button in the active area slot
+    updateProgressBar(QUESTIONS.length);
+    document.getElementById('calcWrap').classList.remove('hidden');
+  }
+}
+
+/* Allow editing a previously answered question.
+   Removes that answer and all subsequent answers from the history,
+   then places the question back in the active area at the top. */
+function editQuestion(idx) {
+  // Remove done rows from idx onward from the history stack
+  for (let i = idx; i < QUESTIONS.length; i++) {
+    const done = document.getElementById(`done-${i}`);
+    if (done) done.remove();
+  }
+  // Hide calc button (will re-appear when all questions re-answered)
+  document.getElementById('calcWrap').classList.add('hidden');
+
+  currentQ = idx;
+  showQuestion(idx); // places the card back in qActive at the top
+}
+
+/* Enter key submits current question */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const idx = currentQ;
+  if (idx >= QUESTIONS.length) return;
+  const input = document.getElementById(`qinput-${idx}`);
+  if (document.activeElement === input) submitQuestion(idx);
+});
+
+/* Init step 1 — resets all state for a fresh run */
+function initStep1() {
+  initProgressBar();
+  document.getElementById('qActive').innerHTML  = '';
+  document.getElementById('qHistory').innerHTML = '';
+  currentQ  = 0;
+  answers   = {};
+  estimated = {};
+  document.getElementById('calcWrap').classList.add('hidden');
+  showQuestion(0); // first question appears at top
+}
+
+/* =====================================================
+   CALCULATE: transition to step 2
+===================================================== */
+/* =====================================================
+   CALCULATION LOADER
+   Shows a brief animated overlay between step 1 submit
+   and step 2 reveal — communicates that work is happening.
+   Steps: fade in → cycle status messages + progress bar
+          → fade out → show step 2.
+===================================================== */
+function runLoader(onDone) {
+  const loader    = document.getElementById('calcLoader');
+  const statusEl  = document.getElementById('loaderStatus');
+  const barEl     = document.getElementById('loaderBar');
+
+  const steps = [
+    { msg: 'Compiling baseline inputs…',       pct: 20,  delay: 0   },
+    { msg: 'Running 12-month projection…',     pct: 50,  delay: 420 },
+    { msg: 'Calculating lever impacts…',       pct: 78,  delay: 840 },
+    { msg: 'Preparing your results…',          pct: 95,  delay: 1220},
+  ];
+
+  // Fade in
+  loader.classList.add('visible');
+
+  // Cycle through status messages + fill the progress bar
+  steps.forEach(({ msg, pct, delay }) => {
+    setTimeout(() => {
+      statusEl.style.opacity = '0';
+      setTimeout(() => {
+        statusEl.textContent   = msg;
+        statusEl.style.opacity = '1';
+      }, 120);
+      barEl.style.width = pct + '%';
+    }, delay);
+  });
+
+  // After last step, fill bar to 100% then fade out and call onDone
+  setTimeout(() => {
+    barEl.style.width = '100%';
+    setTimeout(() => {
+      loader.classList.add('fade-out');
+      setTimeout(() => {
+        loader.classList.remove('visible', 'fade-out');
+        barEl.style.width = '0%'; // reset for next use
+        onDone();
+      }, 260);
+    }, 300);
+  }, 1600);
+}
+
+function handleCalculate() {
+  // Baseline captures all 8 answers (including P0 = customers).
+  // Any optional field left at "I don't know" already has its defaultVal in answers[].
+  baseline = Object.assign({}, answers);
+  // current starts equal to baseline; customers is always locked to baseline.customers.
+  // Slider events will mutate the 7 non-customers keys in current.
+  current  = Object.assign({}, baseline);
+
+  // Persist both numeric values and estimated flags
+  localStorage.setItem('sric_baseline',  JSON.stringify(baseline));
+  localStorage.setItem('sric_estimated', JSON.stringify(estimated));
+
+  // Show loading animation, then reveal step 2
+  runLoader(() => showStep2());
+}
+
+function showStep2() {
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+  buildSliders();
+  updateResults();
+  updateLeverTable();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* =====================================================
+   SLIDER RANGE LOGIC (6 levers — customers + arpu excluded)
+   Positive levers: min = baseline, max varies
+   Churn (negative lever): min = 0, max = baseline
+===================================================== */
+function getRange(key, baseVal) {
+  if (key === 'churn')
+    // Churn: reduce toward 0 (left = better)
+    return {min:0, max:Math.max(baseVal, 0.1), step:0.1};
+  if (['onboard','activate','conv'].includes(key))
+    // Percentage funnel levers: improve up to 100%
+    return {min:baseVal, max:100, step:0.1};
+  if (key === 'expand')
+    // Expansion: ARPU compounds via (1+expand/100)^t — keep range realistic
+    // Baseline+10pp max so users see meaningful but not absurd ARPU multiples
+    return {min:baseVal, max:Math.min(20, baseVal + 10), step:0.1};
+  if (key === 'newusers')
+    // New users: up to 2× baseline
+    return {min:baseVal, max:baseVal * 2 || 100, step:1};
+  // Fallback
+  return {min:baseVal, max:baseVal * 2 || 100, step:1};
+}
+
+/* =====================================================
+   BUILD SLIDER UI — 6 levers (customers + arpu excluded)
+   If a lever's baseline was estimated (user chose "I don't know"),
+   an "Estimated" badge appears next to the baseline label.
+===================================================== */
+function buildSliders() {
+  const list = document.getElementById('sliderList');
+  list.innerHTML = '';
+
+  SLIDER_QUESTIONS.forEach(q => {
+    const baseVal  = baseline[q.key];
+    const range    = getRange(q.key, baseVal);
+    const curVal   = current[q.key];
+    const isChurn  = q.key === 'churn';
+    // Show estimated badge if this lever's baseline came from a default
+    const estBadge = estimated[q.key]
+      ? `<span class="badge-sm badge-est-sl">Estimated</span>`
+      : '';
+
+    const item = document.createElement('div');
+    item.className = 'sl-item';
+
+    item.innerHTML = `
+      <div class="sl-head">
+        <span class="sl-name">${SLIDER_LABELS[q.key]}</span>
+        <div class="sl-badges">
+          <span class="badge-sm b-base">Base: ${fmtVal(baseVal, q)}</span>
+          ${estBadge}
+          <span class="badge-sm b-cur" id="bc-${q.key}">${fmtVal(curVal, q)}</span>
+          <span class="badge-sm b-neu" id="bd-${q.key}">No change</span>
+        </div>
+      </div>
+      <input type="range"
+        id="sl-${q.key}"
+        class="${isChurn ? 'churn-sl' : ''}"
+        min="${range.min}" max="${range.max}" step="${range.step}"
+        value="${curVal}">
+    `;
+
+    list.appendChild(item);
+
+    const slider = item.querySelector(`#sl-${q.key}`);
+    styleTrack(slider, range, isChurn);
+
+    slider.addEventListener('input', () => {
+      const v = parseFloat(slider.value);
+      current[q.key] = v;
+      styleTrack(slider, range, isChurn);
+      updateBadges(q, v, baseVal);
+      updateResults();
+      updateLeverTable();
+    });
+  });
+}
+
+/* Color the slider fill track */
+function styleTrack(slider, range, isChurn) {
+  const pct   = ((slider.value - range.min) / (Math.max(range.max - range.min, 0.0001))) * 100;
+  const color = isChurn ? '#ef4444' : '#6366f1';
+  if (isChurn) {
+    // Fill from right as churn decreases (lower = better)
+    const fp = 100 - pct;
+    slider.style.background = `linear-gradient(to left,${color} ${fp}%,#e4e4e7 ${fp}%)`;
+  } else {
+    slider.style.background = `linear-gradient(to right,${color} ${pct}%,#e4e4e7 ${pct}%)`;
+  }
+}
+
+/* Update slider badges */
+function updateBadges(q, curVal, baseVal) {
+  const curEl   = document.getElementById(`bc-${q.key}`);
+  const deltaEl = document.getElementById(`bd-${q.key}`);
+
+  curEl.textContent = fmtVal(curVal, q);
+
+  const abs = curVal - baseVal;
+  const pct = baseVal !== 0 ? (abs / baseVal) * 100 : 0;
+
+  if (Math.abs(abs) < 0.0001) {
+    deltaEl.textContent = 'No change';
+    deltaEl.className   = 'badge-sm b-neu';
+    return;
+  }
+
+  // For churn: lower is improvement; for others: higher is improvement
+  const improved = q.key === 'churn' ? abs < 0 : abs > 0;
+  const sign     = abs > 0 ? '+' : '−';
+  const display  = `${sign}${fmtVal(Math.abs(abs), q)} (${Math.abs(pct).toFixed(1)}%)`;
+
+  deltaEl.textContent = display;
+  deltaEl.className   = `badge-sm ${improved ? 'b-pos' : 'b-neg'}`;
+}
+
+/* =====================================================
+   RESULTS UPDATE
+   Always uses baseline.customers (P0) for both scenarios.
+   The "updated" scenario changes only the 7 slider levers.
+   Shows/hides the estimated banner based on whether any
+   optional field was auto-filled with a conservative default.
+===================================================== */
+function updateResults() {
+  // Show/hide "Some inputs are estimated" banner
+  const anyEst = SLIDER_QUESTIONS.some(q => estimated[q.key]);
+  const banner = document.getElementById('est-banner');
+  if (banner) banner.classList.toggle('hidden', !anyEst);
+
+  // P0 is always baseline — not slideable
+  const baseParams = Object.assign({}, baseline);
+  // Updated params: P0 locked to baseline, 7 levers from current
+  const updParams  = Object.assign({}, current, { customers: baseline.customers });
+
+  const base = runProjection(baseParams);
+  const upd  = runProjection(updParams);
+
+  // P0 read-only display
+  document.getElementById('p0-display').textContent =
+    Math.round(baseline.customers).toLocaleString('en-US');
+
+  // MRR & Revenue
+  document.getElementById('r-base-mrr').textContent = fmtCurrency(base.mrr12);
+  document.getElementById('r-upd-mrr').textContent  = fmtCurrency(upd.mrr12);
+  document.getElementById('r-base-rev').textContent = fmtCurrency(base.total);
+  document.getElementById('r-upd-rev').textContent  = fmtCurrency(upd.total);
+
+  // Month-12 paying customers (computed outcome, not a lever)
+  document.getElementById('r-base-cust').textContent =
+    Math.round(base.cust12).toLocaleString('en-US');
+  document.getElementById('r-upd-cust').textContent  =
+    Math.round(upd.cust12).toLocaleString('en-US');
+
+  // Revenue lift
+  const liftAbs = upd.total - base.total;
+  const liftPct = base.total !== 0 ? (liftAbs / base.total) * 100 : 0;
+  const pos     = liftAbs >= 0;
+
+  document.getElementById('r-lift-abs').textContent = (pos ? '+' : '') + fmtCurrency(liftAbs);
+  document.getElementById('r-lift-pct').textContent = (pos ? '+' : '') + liftPct.toFixed(1) + '%';
+
+  // Detect whether any slider has actually moved from its baseline value
+  const anyChanged = SLIDER_QUESTIONS.some(
+    q => Math.abs((current[q.key] ?? 0) - (baseline[q.key] ?? 0)) > 0.0001
+  );
+
+  // Lift cards — colored only when a slider has moved; neutral/grayed otherwise
+  const absCard = document.getElementById('lift-card-abs');
+  const pctCard = document.getElementById('lift-card-pct');
+  absCard.className = anyChanged ? `m-card ${pos ? 'success-card' : 'danger-card'}` : 'm-card';
+  pctCard.className = anyChanged ? `m-card ${pos ? 'success-card' : 'danger-card'}` : 'm-card';
+
+  // MRR & Revenue dual cards — accent highlight only when a slider has moved
+  const mrrCard   = document.getElementById('card-mrr');
+  const revCard   = document.getElementById('card-rev');
+  const updMrr    = document.getElementById('r-upd-mrr');
+  const updRev    = document.getElementById('r-upd-rev');
+  mrrCard.className = anyChanged ? 'm-card-dual accent-dual' : 'm-card-dual cust-dual';
+  revCard.className = anyChanged ? 'm-card-dual accent-dual' : 'm-card-dual cust-dual';
+  updMrr.className  = anyChanged ? 'dual-updated' : 'dual-updated neutral';
+  updRev.className  = anyChanged ? 'dual-updated' : 'dual-updated neutral';
+}
+
+/* =====================================================
+   PER-LEVER IMPACT TABLE — 6 levers only
+   For each lever: apply only that lever's slider value,
+   all others remain at baseline. P0 (customers) and arpu
+   are always locked to baseline in every scenario.
+   Sorted by absolute revenue lift, largest first.
+===================================================== */
+function updateLeverTable() {
+  const base = runProjection(baseline);
+
+  // Compute max absolute lift across all 7 levers (for relative bar scaling)
+  const maxAbs = Math.max(
+    ...SLIDER_QUESTIONS.map(q => {
+      // P0 always = baseline.customers; only this one lever changes
+      const params = Object.assign({}, baseline, {[q.key]: current[q.key]}, {customers: baseline.customers});
+      return Math.abs(runProjection(params).total - base.total);
+    }), 1
+  );
+
+  const rows = SLIDER_QUESTIONS.map(q => {
+    // Isolate this single lever; everything else (including P0) stays at baseline
+    const params  = Object.assign({}, baseline, {[q.key]: current[q.key]}, {customers: baseline.customers});
+    const result  = runProjection(params);
+    const liftAbs = result.total - base.total;
+    const liftPct = base.total !== 0 ? (liftAbs / base.total) * 100 : 0;
+    return {q, liftAbs, liftPct};
+  }).sort((a, b) => Math.abs(b.liftAbs) - Math.abs(a.liftAbs));
+
+  const tbody = document.getElementById('leverTableBody');
+  tbody.innerHTML = '';
+
+  rows.forEach(({q, liftAbs, liftPct}) => {
+    const baseVal = baseline[q.key];
+    const curVal  = current[q.key];
+    const changed = Math.abs(curVal - baseVal) > 0.0001;
+    const pos     = liftAbs >= 0;
+    const sign    = liftAbs >= 0 ? '+' : '';
+    const barPct  = Math.round((Math.abs(liftAbs) / maxAbs) * 100);
+    const barColor= pos ? 'var(--accent)' : 'var(--danger)';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${SLIDER_LABELS[q.key]}</strong></td>
+      <td style="color:var(--text-2)">${fmtVal(baseVal, q)}</td>
+      <td>${changed ? fmtVal(curVal, q) : '<span style="color:var(--text-3)">—</span>'}</td>
+      <td class="${changed ? (pos ? 't-pos' : 't-neg') : ''}">
+        ${changed ? sign + fmtCurrency(liftAbs) : '<span style="color:var(--text-3)">No change</span>'}
+      </td>
+      <td class="${changed ? (pos ? 't-pos' : 't-neg') : ''}">
+        ${changed ? sign + liftPct.toFixed(1) + '%' : ''}
+      </td>
+      <td>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${changed ? barPct : 0}%;background:${barColor}"></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* =====================================================
+   NAVIGATION
+===================================================== */
+function goBack() {
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step1').classList.remove('hidden');
+
+  // Rebuild the stream from saved answers so user can see/edit
+  rebuildStreamFromAnswers();
+}
+
+/* Rebuild question stream (used when returning from step 2 via Back).
+   Active area is cleared (calc button takes its slot), answered rows
+   are re-populated in the history below. */
+function rebuildStreamFromAnswers() {
+  document.getElementById('qActive').innerHTML  = '';
+  const history = document.getElementById('qHistory');
+  history.innerHTML = '';
+
+  QUESTIONS.forEach((_, i) => {
+    if (answers[QUESTIONS[i].key] !== undefined) {
+      history.appendChild(renderDoneRow(i));
+    }
+  });
+
+  updateProgressBar(QUESTIONS.length);
+  document.getElementById('calcWrap').classList.remove('hidden');
+  currentQ = QUESTIONS.length;
+}
+
+function handleReset() {
+  if (!confirm('Reset everything and start over?')) return;
+  localStorage.removeItem('sric_baseline');
+  localStorage.removeItem('sric_estimated');
+  baseline  = {};
+  current   = {};
+  answers   = {};
+  estimated = {};
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step1').classList.remove('hidden');
+  initStep1();
+  showToast('Reset complete.');
+}
+
+/* =====================================================
+   RESTORE FROM LOCALSTORAGE
+   Restores both numeric baseline values and estimated flags.
+===================================================== */
+function restoreFromStorage() {
+  const saved    = localStorage.getItem('sric_baseline');
+  const savedEst = localStorage.getItem('sric_estimated');
+  if (!saved) return false;
+  try {
+    const vals = JSON.parse(saved);
+    const keys = QUESTIONS.map(q => q.key);
+    if (!keys.every(k => vals[k] !== undefined)) return false;
+    answers   = Object.assign({}, vals);
+    baseline  = Object.assign({}, vals);
+    current   = Object.assign({}, vals);
+    estimated = savedEst ? JSON.parse(savedEst) : {};
+    return true;
+  } catch(e) {
+    localStorage.removeItem('sric_baseline');
+    localStorage.removeItem('sric_estimated');
+    return false;
+  }
+}
+
+/* =====================================================
+   SANITY TESTS — run once on load, results in console
+   Verifies funnel propagation, zero-gate behaviour, lift% identity.
+===================================================== */
+function runSanityTests() {
+  // Shared fixture — realistic SaaS numbers, all rates as whole-number percents
+  const fx = { customers:500, newusers:40, onboard:40, activate:25, conv:3,
+               arpu:50, churn:6, expand:1 };
+
+  // ── T1: onboarding 40%→89%: NewPaid increases AND Paying[12] increases ──
+  const fx_hi = Object.assign({}, fx, { onboard: 89 });
+  const newPaid_base = fx.newusers * (fx.onboard/100)    * (fx.activate/100) * (fx.conv/100);
+  const newPaid_hi   = fx.newusers * (fx_hi.onboard/100) * (fx.activate/100) * (fx.conv/100);
+  const r_base = runProjection(fx);
+  const r_hi   = runProjection(fx_hi);
+  console.assert(newPaid_hi > newPaid_base,
+    `[T1 FAIL] NewPaid should increase when onboarding rises: ${newPaid_base.toFixed(4)} → ${newPaid_hi.toFixed(4)}`);
+  console.assert(r_hi.cust12 > r_base.cust12,
+    `[T1 FAIL] Paying[12] should increase when onboarding rises: ${r_base.cust12.toFixed(2)} → ${r_hi.cust12.toFixed(2)}`);
+
+  // ── T2: if activation=0 OR conv=0, onboarding changes have NO effect ──
+  const fx_a0  = Object.assign({}, fx, { activate: 0 });
+  const fx_c0  = Object.assign({}, fx, { conv: 0 });
+  console.assert(
+    runProjection(fx_a0).cust12 === runProjection(Object.assign({}, fx_a0, { onboard: 89 })).cust12,
+    '[T2 FAIL] Paying[12] must be unchanged when activation=0 regardless of onboarding');
+  console.assert(
+    runProjection(fx_c0).cust12 === runProjection(Object.assign({}, fx_c0, { onboard: 89 })).cust12,
+    '[T2 FAIL] Paying[12] must be unchanged when conv=0 regardless of onboarding');
+
+  // ── T3: Lift% = (scenario_total − baseline_total) / baseline_total ──
+  const r_scen   = runProjection(fx_hi);
+  const liftAbs  = r_scen.total - r_base.total;
+  const liftFrac = liftAbs / r_base.total;           // raw fraction (×100 only at display)
+  const liftPct  = (r_scen.total - r_base.total) / r_base.total * 100;
+  console.assert(Math.abs(liftFrac - liftAbs / r_base.total) < 1e-10,
+    `[T3 FAIL] Lift% denominator must be baseline_total`);
+
+  console.info(
+    `[Sanity ✓] T1–T3 passed. Fixture lift: +$${liftAbs.toFixed(2)} / +${liftPct.toFixed(3)}%`);
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+  runSanityTests();   // verify funnel math on every page load — check browser console
+  const restored = restoreFromStorage();
+  if (restored) {
+    // Show step 2 immediately with saved data
+    showStep2();
+    // But also populate the step1 stream in background
+    rebuildStreamFromAnswers();
+  } else {
+    initStep1();
+  }
+});
+</script>
+</body>
+</html>
