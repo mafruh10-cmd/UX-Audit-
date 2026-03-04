@@ -134,6 +134,12 @@ body{
   border-radius:50%;animation:spin .7s linear infinite;
 }
 
+/* ── Step 5 progress bar ── */
+#step5Progress{display:none;margin-top:14px;padding:0 2px;}
+.pbar-track{height:5px;background:#F3F4F6;border-radius:99px;overflow:hidden;}
+.pbar-fill{height:100%;background:#F05023;border-radius:99px;width:0%;transition:width .4s ease;}
+.pbar-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#9CA3AF;}
+
 /* ── Ready screen ── */
 .ready-icon{
   width:52px;height:52px;background:#ECFDF5;border-radius:50%;
@@ -257,6 +263,21 @@ body{
       </div>
     </div>
 
+    <div style="margin-top:20px;">
+      <label class="form-label" style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+        Your website URL <span style="color:#F05023;">*</span>
+      </label>
+      <input type="url" id="inputWebsiteUrl" class="form-input"
+        placeholder="https://yourproduct.com"
+        style="width:100%;padding:10px 14px;border:1px solid #D1D5DB;border-radius:8px;
+               font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;"
+        oninput="checkAuditReady()"
+        onfocus="this.style.borderColor='#F05023'" onblur="this.style.borderColor='#D1D5DB'"/>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">
+        We'll read your homepage to tailor the audit to your product's context.
+      </div>
+    </div>
+
     <div class="error-banner" id="uploadError"></div>
 
     <button class="btn btn-primary" id="auditBtn" disabled onclick="startAudit()">
@@ -273,6 +294,13 @@ body{
       <div class="progress-sub" id="progressSub">This takes about 30–45 seconds</div>
     </div>
     <ul class="steps-list" id="stepsList"></ul>
+    <div id="step5Progress">
+      <div class="pbar-track"><div class="pbar-fill" id="pbarFill"></div></div>
+      <div class="pbar-meta">
+        <span id="pbarLabel">Generating report…</span>
+        <span id="pbarPct">0%</span>
+      </div>
+    </div>
   </div>
 
 
@@ -313,12 +341,6 @@ body{
         </label>
         <input type="email" id="inputEmail" class="form-input" placeholder="jane@company.com" required/>
         <div class="form-error" id="emailError">Please enter a valid email address.</div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">
-          Website <span class="form-opt">(optional)</span>
-        </label>
-        <input type="text" id="inputWebsite" class="form-input" placeholder="company.com"/>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
         <button type="button" class="btn btn-primary" id="downloadBtn"
@@ -431,14 +453,20 @@ function handleFile(file) {
   reader.readAsDataURL(file);
   document.getElementById('previewName').textContent = file.name;
   document.getElementById('previewWrap').style.display = 'block';
-  document.getElementById('auditBtn').disabled = false;
+  checkAuditReady();
+}
+
+function checkAuditReady() {
+  const hasFile = !!selectedFile;
+  const hasUrl  = document.getElementById('inputWebsiteUrl').value.trim().length > 0;
+  document.getElementById('auditBtn').disabled = !(hasFile && hasUrl);
 }
 
 function clearFile() {
   selectedFile = null;
   fileInput.value = '';
   document.getElementById('previewWrap').style.display = 'none';
-  document.getElementById('auditBtn').disabled = true;
+  checkAuditReady();
   hideUploadErr();
 }
 
@@ -459,6 +487,7 @@ async function startAudit() {
 
   const fd = new FormData();
   fd.append('file', selectedFile);
+  fd.append('website_url', document.getElementById('inputWebsiteUrl').value.trim());
 
   let res;
   try {
@@ -498,6 +527,8 @@ function renderSteps(defaultStatus) {
     </li>`).join('');
 }
 
+let _pbarInterval = null;
+
 function updateStep(idx, status, label) {
   const item = document.getElementById(`si-${idx}`);
   const dot  = document.getElementById(`sd-${idx}`);
@@ -507,6 +538,58 @@ function updateStep(idx, status, label) {
   dot.innerHTML  = status === 'done'   ? checkIcon()
                  : status === 'active' ? '<div class="spinner"></div>'
                  : idx + 1;
+
+  // Step 5 (index 4) — show progress bar when active, stop when done
+  if (idx === 4) {
+    if (status === 'active') _startProgressBar();
+    if (status === 'done')   _finishProgressBar();
+  }
+}
+
+function _startProgressBar() {
+  const bar   = document.getElementById('step5Progress');
+  const fill  = document.getElementById('pbarFill');
+  const pct   = document.getElementById('pbarPct');
+  const lbl   = document.getElementById('pbarLabel');
+  bar.style.display = 'block';
+
+  // Estimated max duration: 90s (backend ceiling). Bar reaches ~95% at 85s, never hits 100% until done.
+  const DURATION_MS = 90_000;
+  const start = Date.now();
+
+  const messages = [
+    [0,  'Generating report…'],
+    [20, 'Applying UX principles…'],
+    [45, 'Building accessibility findings…'],
+    [70, 'Finalising annotations…'],
+    [85, 'Almost there…'],
+  ];
+
+  _pbarInterval = setInterval(() => {
+    const elapsed = Date.now() - start;
+    const raw = elapsed / DURATION_MS;
+    // Ease-out curve so it slows down as it approaches 95%
+    const progress = Math.min(0.95, 1 - Math.pow(1 - raw, 2.5));
+    const p = Math.round(progress * 100);
+    fill.style.width = p + '%';
+    pct.textContent  = p + '%';
+    // Update label based on elapsed seconds
+    const elapsedSec = elapsed / 1000;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (elapsedSec >= messages[i][0]) { lbl.textContent = messages[i][1]; break; }
+    }
+  }, 300);
+}
+
+function _finishProgressBar() {
+  if (_pbarInterval) { clearInterval(_pbarInterval); _pbarInterval = null; }
+  const fill = document.getElementById('pbarFill');
+  const pct  = document.getElementById('pbarPct');
+  const lbl  = document.getElementById('pbarLabel');
+  fill.style.transition = 'width .6s ease';
+  fill.style.width = '100%';
+  pct.textContent  = '100%';
+  lbl.textContent  = 'Report ready';
 }
 
 function checkIcon() {
@@ -561,9 +644,8 @@ async function handleDownload(mode) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name:    document.getElementById('inputName').value.trim(),
+        name:  document.getElementById('inputName').value.trim(),
         email,
-        website: document.getElementById('inputWebsite').value.trim(),
       }),
     });
 
@@ -612,6 +694,8 @@ function donePreview() {
 function resetApp() {
   sessionId = null; selectedFile = null; auditData = null;
   reportUrl = null; reportFilename = 'ux_audit.html';
+  document.getElementById('inputWebsiteUrl').value = '';
+  checkAuditReady();
   fileInput.value = '';
   document.getElementById('previewWrap').style.display = 'none';
   document.getElementById('auditBtn').disabled = true;

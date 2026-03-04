@@ -11,6 +11,9 @@ import time
 import uuid
 from datetime import datetime
 
+import urllib.request as _urllib_req
+from html.parser import HTMLParser
+
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
 from flask_cors import CORS
 
@@ -121,6 +124,7 @@ Analyze the UI screenshot below carefully. You must produce TWO types of finding
 Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text:
 {
   "screen_name": "Short descriptive screen name (e.g. Dashboard, Login, Onboarding Step 2)",
+  "product_description": "Exactly 2 sentences: what this product/company does and who it serves, written from the perspective of the audit reader. Base this on the website context provided. If no website context was given, infer from the screenshot.",
   "overall_score": 7.2,
   "score_label": "Good",
   "summary": "2-3 sentence executive summary of the UX quality and main themes",
@@ -190,6 +194,43 @@ Annotation Rules (apply to both issues and accessibility):
   Be specific — do not default to x=50, y=50 for all issues.
 """
 
+# ─── Website context fetcher ──────────────────────────────────────────────────
+
+def _fetch_website_context(url):
+    try:
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        req = _urllib_req.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; UXAudit/1.0)"})
+        with _urllib_req.urlopen(req, timeout=8) as resp:
+            raw = resp.read(150_000).decode("utf-8", errors="ignore")
+
+        class _Stripper(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.parts = []
+                self._skip = False
+            def handle_starttag(self, tag, _):
+                if tag in ("script", "style", "nav", "footer", "head"):
+                    self._skip = True
+            def handle_endtag(self, tag):
+                if tag in ("script", "style", "nav", "footer", "head"):
+                    self._skip = False
+            def handle_data(self, data):
+                if not self._skip:
+                    s = data.strip()
+                    if len(s) > 3:
+                        self.parts.append(s)
+
+        p = _Stripper()
+        p.feed(raw)
+        text = " ".join(p.parts)
+        print(f"[info] Website context fetched: {len(text)} chars from {url}")
+        return text[:3000]
+    except Exception as e:
+        print(f"[warn] Could not fetch website {url}: {e}")
+        return ""
+
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -222,15 +263,20 @@ def upload():
         if len(data) > 20 * 1024 * 1024:
             return jsonify({"error": "Image must be under 20 MB"}), 400
 
+        website_url     = request.form.get("website_url", "").strip()
+        website_context = _fetch_website_context(website_url) if website_url else ""
+
         sid = str(uuid.uuid4())
         with _lock:
             sessions[sid] = {
-                "image_b64":    base64.b64encode(data).decode(),
-                "annotated_b64": None,
-                "media_type":   media_type,
-                "filename":     f.filename,
-                "status":       "uploaded",
-                "analysis":     None,
+                "image_b64":      base64.b64encode(data).decode(),
+                "annotated_b64":  None,
+                "media_type":     media_type,
+                "filename":       f.filename,
+                "status":         "uploaded",
+                "analysis":       None,
+                "website_url":    website_url,
+                "website_context": website_context,
             }
         return jsonify({"session_id": sid})
     except Exception as exc:
@@ -272,6 +318,18 @@ def audit_stream(sid):
                             "The following is extracted from your UX training curriculum. "
                             "Use it to ground every finding in a specific source.\n"
                             + KNOWLEDGE_BASE
+                        ),
+                    })
+                if session.get("website_context"):
+                    content.append({
+                        "type": "text",
+                        "text": (
+                            "\n=== PRODUCT WEBSITE CONTEXT ===\n"
+                            f"Website URL: {session.get('website_url', '')}\n"
+                            "The following text was extracted from the product's homepage. "
+                            "Use it to understand what the product is, who it serves, and "
+                            "tailor every finding to their specific context.\n\n"
+                            + session["website_context"]
                         ),
                     })
                 content.append({
@@ -407,7 +465,7 @@ def download_report(sid):
     data = request.get_json(force=True) or {}
     email = data.get("email", "").strip()
     name  = data.get("name", "").strip()
-    site  = data.get("website", "").strip()
+    site  = session.get("website_url", "")
 
     if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
         return jsonify({"error": "Please enter a valid email address"}), 400
@@ -576,14 +634,15 @@ def _wcag_badge(level):
 
 
 def _build_report(analysis, image_b64, media_type, user_name, user_website):
-    issues              = analysis.get("issues", [])
-    accessibility       = analysis.get("accessibility", [])
-    score               = analysis.get("overall_score", 0)
-    score_label         = analysis.get("score_label", "")
-    accessibility_score = analysis.get("accessibility_score", None)
-    screen_name         = analysis.get("screen_name", "Screen")
-    summary             = analysis.get("summary", "")
-    today               = datetime.utcnow().strftime("%B %d, %Y")
+    issues               = analysis.get("issues", [])
+    accessibility        = analysis.get("accessibility", [])
+    score                = analysis.get("overall_score", 0)
+    score_label          = analysis.get("score_label", "")
+    accessibility_score  = analysis.get("accessibility_score", None)
+    screen_name          = analysis.get("screen_name", "Screen")
+    summary              = analysis.get("summary", "")
+    product_description  = analysis.get("product_description", "")
+    today                = datetime.utcnow().strftime("%B %d, %Y")
 
     h = sum(1 for i in issues if i.get("severity") == "High")
     m = sum(1 for i in issues if i.get("severity") == "Medium")
@@ -955,6 +1014,15 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><a href="https://saasfactor.co" style="color:#F05023;text-decoration:none;">saasfactor.co</a></div></div>'
         '</div>'
         f'<div style="margin-top:24px;padding-top:24px;border-top:1px solid #F3F4F6;font-size:14px;color:#4B5563;line-height:1.7;">{summary}</div>'
+        + (
+            f'<div style="margin-top:16px;padding:14px 18px;background:#F8F9FA;border-radius:10px;'
+            f'border-left:3px solid #D1D5DB;">'
+            f'<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;'
+            f'color:#9CA3AF;margin-bottom:6px;">About This Product</div>'
+            f'<div style="font-size:13px;color:#4B5563;line-height:1.6;">{product_description}</div>'
+            f'</div>'
+            if product_description else ""
+        ) +
         '</div>'
 
         # Issues at a glance
