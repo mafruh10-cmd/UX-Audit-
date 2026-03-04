@@ -117,9 +117,9 @@ KNOWLEDGE_BASE = _build_knowledge_base()
 AUDIT_PROMPT = """You are a senior UX and accessibility auditor. You have been trained on the Saasfactor UX curriculum AND the WCAG 2.2 accessibility guidelines.
 The training knowledge base is provided above. Use it to ground every finding.
 
-Analyze the UI screenshot below carefully. You must produce TWO types of findings:
-1. UX issues — usability, hierarchy, clarity, psychology-based problems
-2. Accessibility issues — WCAG 2.2 Level A and AA violations visible in the screenshot
+Analyze the UI screenshot below carefully. Produce a unified list of 7–10 findings that covers BOTH UX issues (usability, hierarchy, clarity, psychology) AND accessibility violations (WCAG 2.2 Level A/AA). Do NOT separate them — accessibility issues appear inline alongside UX issues in the same list, ordered by severity.
+
+For any finding that also violates a WCAG 2.2 criterion, add "wcag_criterion" and "wcag_level" fields to that issue. Pure UX issues that have no WCAG violation should omit those fields.
 
 Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text:
 {
@@ -139,56 +139,49 @@ Return ONLY a valid JSON object — no markdown fences, no explanation, no extra
       "critical_reason": "1-2 sentences: the psychological or cognitive principle that makes this a critical issue, citing the specific training source",
       "recommendation": "2-3 sentences: concrete actionable fix with implementation specifics",
       "reference": "Nielsen's Heuristic #1: Visibility of System Status",
-      "annotation": {"x": 75, "y": 20, "w": 35, "h": 10}
-    }
-  ],
-  "accessibility": [
-    {
-      "id": "A01",
-      "criterion": "1.4.3",
+      "wcag_criterion": "1.4.3",
       "wcag_level": "AA",
-      "title": "Short descriptive accessibility issue title",
-      "severity": "High",
-      "location": "Specific UI element visible in the screenshot",
-      "problem": "2-3 sentences: what WCAG rule is violated and how it impacts users with disabilities",
-      "recommendation": "2-3 sentences: concrete fix with implementation specifics",
       "annotation": {"x": 75, "y": 20, "w": 35, "h": 10}
+    },
+    {
+      "id": "02",
+      "title": "Pure UX issue — no WCAG violation",
+      "severity": "Medium",
+      "location": "Navigation bar",
+      "problem": "...",
+      "critical_reason": "...",
+      "recommendation": "...",
+      "reference": "...",
+      "annotation": {"x": 50, "y": 5, "w": 80, "h": 8}
     }
   ]
 }
 
-UX Issues Rules:
+Rules:
 - overall_score: 0–10 (one decimal). score_label: Poor / Fair / Good / Strong.
-- severity: High / Medium / Low only. Find 5–8 distinct real UX issues.
-- problem: MAX 3 sentences. State the issue as a synopsis and describe the direct UX impact.
+- accessibility_score: 0–10 (one decimal) reflecting overall WCAG 2.2 compliance from what is visible.
+- severity: High / Medium / Low only. Order issues by severity (High first).
+- Include at least 3 issues that are WCAG 2.2 violations (with wcag_criterion + wcag_level). The rest are pure UX findings.
+- wcag_criterion: the WCAG 2.2 success criterion number (e.g. "1.4.3", "2.4.7", "1.1.1"). Only include if there is a real WCAG violation.
+- wcag_level: "A" or "AA" only. Only include alongside wcag_criterion.
+- problem: MAX 3 sentences. State what is wrong and the direct UX/accessibility impact.
 - critical_reason: MAX 2 sentences. Explain WHY this matters using a specific psychological or
   cognitive science principle from the training data (e.g. cognitive load, Hick's Law,
-  Gestalt, working memory, loss aversion). Must cite the source.
+  Gestalt, working memory, loss aversion). Must cite the source. For WCAG issues, name the exact criterion violated.
 - recommendation: MAX 3 sentences. Be concrete and actionable.
 - reference: cite the EXACT book title and specific principle/chapter/rule from the training knowledge
-  base above. Examples:
+  base above. For WCAG issues, reference the WCAG 2.2 guideline. Examples:
   "Don't Make Me Think (Krug) — Billboard Design 101: users scan, not read",
   "Refactoring UI — Use color to support hierarchy, not communicate it alone",
   "Designing User Interfaces (Malewicz) — Contrast and visual hierarchy",
   "Psychology of Design — Hick's Law: too many choices slows decisions",
   "Practical UI — Spacing consistency: use a spacing scale",
   "Psych 101 (Kleinman) — Gestalt: Law of Proximity",
-  "UX Component Rules — Button: always use visible label, not icon-only",
-  "100 More Things Every Designer Needs to Know — Peripheral vision and attention"
-
-Accessibility Issues Rules:
-- accessibility_score: 0–10 (one decimal) reflecting overall WCAG 2.2 compliance from what is visible.
-- Find 3–6 distinct WCAG 2.2 Level A or AA violations visible in the screenshot.
-- criterion: the WCAG 2.2 success criterion number (e.g. "1.4.3", "2.4.7", "1.1.1").
-- wcag_level: "A" or "AA" only.
-- severity: High for Level A violations or critical AA failures, Medium for standard AA, Low for minor AA.
-- Focus on visually detectable issues: contrast ratios, color-only information, missing labels,
+  "WCAG 2.2 — 1.4.3 Contrast Minimum (AA): normal text requires 4.5:1 contrast ratio",
+  "WCAG 2.2 — 2.4.7 Focus Visible (AA): keyboard focus indicator must be visible"
+- Focus on visually detectable accessibility issues: contrast ratios, color-only information, missing labels,
   touch target sizes, focus indicator absence, images of text, heading structure, icon-only buttons,
   placeholder-only form fields, error states without text labels.
-- problem: name the exact WCAG criterion violated and explain the impact on users with disabilities.
-- recommendation: give a concrete fix referencing the WCAG criterion.
-
-Annotation Rules (apply to both issues and accessibility):
 - annotation: approximate center of the issue on the screenshot as percentages (x=0 left, x=100 right,
   y=0 top, y=100 bottom). w and h are width/height as percentages.
   Be specific — do not default to x=50, y=50 for all issues.
@@ -739,13 +732,21 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
     for idx, iss in enumerate(sorted_issues):
         sev = iss.get("severity", "Low")
         _, _, border = _SEV_COLORS.get(sev, _SEV_COLORS["Low"])
+        criterion = iss.get("wcag_criterion", "")
+        wcag_level = iss.get("wcag_level", "")
+        wcag_mini = (
+            f'<span style="background:#EDE9FE;color:#6D28D9;font-size:9px;font-weight:800;'
+            f'padding:1px 6px;border-radius:20px;margin-left:5px;letter-spacing:.04em;">'
+            f'WCAG {criterion}</span>'
+        ) if criterion else ""
         delay = idx * 80
         glance_cards += (
             f'<div class="glance-card" style="background:#fff;border-radius:10px;padding:14px 16px;'
             f'border-top:3px solid {border};box-shadow:0 1px 3px rgba(0,0,0,.05);'
             f'transition-delay:{delay}ms;">'
             f'<div style="font-size:10px;font-weight:700;color:#9CA3AF;letter-spacing:.08em;'
-            f'text-transform:uppercase;margin-bottom:6px;">{iss.get("id","--")}</div>'
+            f'text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;">'
+            f'{iss.get("id","--")}{wcag_mini}</div>'
             f'<div style="font-size:12px;font-weight:600;color:#1A1A1A;line-height:1.4;">'
             f'{iss.get("title","")}</div>'
             f'<div style="margin-top:8px;">{_badge(sev)}</div>'
@@ -758,6 +759,8 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         sev = iss.get("severity", "Low")
         _, _, border = _SEV_COLORS.get(sev, _SEV_COLORS["Low"])
         ref = iss.get("reference", "")
+        criterion = iss.get("wcag_criterion", "")
+        wcag_level = iss.get("wcag_level", "")
         ref_html = (
             f'<div style="margin-top:14px;padding:10px 14px;background:#F8F9FA;border-radius:8px;'
             f'border-left:3px solid #E5E5E5;font-size:12px;color:#6B7280;">'
@@ -769,6 +772,11 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'font-size:11px;color:#92400E;line-height:1.5;">'
             f'<span style="font-weight:700;letter-spacing:.02em;">Why critical: </span>{critical}</div>'
         ) if critical else ""
+        wcag_tag = (
+            f'<span style="background:#EDE9FE;color:#6D28D9;font-size:9px;font-weight:800;'
+            f'letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:20px;'
+            f'margin-left:6px;">WCAG {criterion} · {wcag_level}</span>'
+        ) if criterion else ""
         delay = idx * 60
         detail_cards += (
             f'<div class="detail-card fade-section" style="background:#fff;border-radius:14px;overflow:hidden;'
@@ -778,7 +786,8 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
             f'<div>'
             f'<div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;'
-            f'text-transform:uppercase;margin-bottom:6px;">Issue {iss.get("id","")}</div>'
+            f'text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;">'
+            f'Issue {iss.get("id","")}{wcag_tag}</div>'
             f'<div style="font-size:17px;font-weight:700;color:#1A1A1A;">{iss.get("title","")}</div>'
             f'<div style="font-size:12px;color:#6B7280;margin-top:4px;">📍 {iss.get("location","")}</div>'
             f'</div>{_badge(sev)}</div>'
@@ -799,14 +808,14 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'</div></div>'
         )
 
-    # Accessibility section
-    a_score_html = ""
+    # Accessibility score ring for sidebar stats (kept as a stat, not a section)
+    a_score_stat = ""
     if accessibility_score is not None:
         a_circ = 238.76
         a_target = a_circ * (1.0 - accessibility_score / 10.0)
-        a_score_html = (
-            f'<div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">'
-            f'<svg width="56" height="56" viewBox="0 0 90 90" style="flex-shrink:0;">'
+        a_score_stat = (
+            f'<div style="text-align:center;padding-top:16px;margin-top:16px;border-top:1px solid #F3F4F6;">'
+            f'<svg width="70" height="70" viewBox="0 0 90 90" style="display:block;margin:0 auto 6px;">'
             f'<circle cx="45" cy="45" r="38" fill="none" stroke="#EDE9FE" stroke-width="7"/>'
             f'<circle cx="45" cy="45" r="38" fill="none" stroke="#7C3AED" stroke-width="7"'
             f' stroke-linecap="round" transform="rotate(-90 45 45)"'
@@ -818,60 +827,8 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'<text x="45" y="57" text-anchor="middle" font-family="Inter,system-ui,sans-serif"'
             f' font-size="9" fill="#9CA3AF">/10</text>'
             f'</svg>'
-            f'<div>'
-            f'<div style="font-size:13px;font-weight:700;color:#1A1A1A;">Accessibility Score</div>'
-            f'<div style="font-size:11px;color:#6B7280;margin-top:2px;">WCAG 2.2 Level AA compliance</div>'
-            f'</div></div>'
-        )
-
-    a_issue_cards = ""
-    for idx, iss in enumerate(accessibility):
-        sev = iss.get("severity", "Low")
-        _, _, border = _SEV_COLORS.get(sev, _SEV_COLORS["Low"])
-        criterion = iss.get("criterion", "")
-        wcag_level = iss.get("wcag_level", "AA")
-        delay = idx * 60
-        a_issue_cards += (
-            f'<div class="detail-card fade-section" style="background:#fff;border-radius:14px;overflow:hidden;'
-            f'margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.04);'
-            f'transition-delay:{delay}ms;">'
-            f'<div style="border-left:4px solid {border};padding:18px 24px;'
-            f'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
-            f'<div>'
-            f'<div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;'
-            f'text-transform:uppercase;margin-bottom:4px;">'
-            f'Issue {iss.get("id","")}'
-            f'<span style="background:#EDE9FE;color:#6D28D9;font-size:9px;font-weight:800;'
-            f'letter-spacing:.08em;padding:2px 7px;border-radius:20px;margin-left:6px;">'
-            f'WCAG {criterion} · {wcag_level}</span></div>'
-            f'<div style="font-size:16px;font-weight:700;color:#1A1A1A;">{iss.get("title","")}</div>'
-            f'<div style="font-size:12px;color:#6B7280;margin-top:3px;">📍 {iss.get("location","")}</div>'
-            f'</div>{_badge(sev)}</div>'
-            f'<div style="padding:0 24px 20px;">'
-            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px;">'
-            f'<div style="background:#FAF5FF;border-radius:10px;padding:14px;">'
-            f'<div style="font-size:10px;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.08em;color:#7C3AED;margin-bottom:6px;">The Violation</div>'
-            f'<div style="font-size:13px;color:#374151;line-height:1.6;">{iss.get("problem","")}</div>'
-            f'</div>'
-            f'<div style="background:#F0FDF4;border-radius:10px;padding:14px;">'
-            f'<div style="font-size:10px;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.08em;color:#16A34A;margin-bottom:6px;">Recommendation</div>'
-            f'<div style="font-size:13px;color:#374151;line-height:1.6;">{iss.get("recommendation","")}</div>'
-            f'</div></div></div></div>'
-        )
-
-    accessibility_section = ""
-    if accessibility:
-        accessibility_section = (
-            f'<div class="fade-section" style="margin-top:40px;">'
-            f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">'
-            f'<div style="font-size:20px;font-weight:800;color:#1A1A1A;">Accessibility Audit</div>'
-            f'<span style="background:#EDE9FE;color:#6D28D9;font-size:10px;font-weight:800;'
-            f'letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:20px;">'
-            f'WCAG 2.2</span></div>'
-            f'{a_score_html}'
-            f'{a_issue_cards}'
+            f'<div style="font-size:11px;font-weight:700;color:#6D28D9;">Accessibility</div>'
+            f'<div style="font-size:10px;color:#9CA3AF;margin-top:1px;">WCAG 2.2 AA</div>'
             f'</div>'
         )
 
@@ -1030,11 +987,13 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '<div style="padding:0 24px;border-right:1px solid #F3F4F6;">'
         '<div style="font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:8px;">Screen Audited</div>'
         f'<div style="font-size:15px;font-weight:700;color:#1A1A1A;line-height:1.3;">{screen_name}</div></div>'
-        # Col 4: Audited By
+        # Col 4: Audited By + Accessibility score
         '<div style="padding-left:24px;">'
         '<div style="font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:8px;">Audited By</div>'
         '<div style="font-size:13px;font-weight:600;color:#1A1A1A;">Saasfactor</div>'
-        '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><a href="https://saasfactor.co" style="color:#F05023;text-decoration:none;">saasfactor.co</a></div></div>'
+        '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><a href="https://saasfactor.co" style="color:#F05023;text-decoration:none;">saasfactor.co</a></div>'
+        f'{a_score_stat}'
+        '</div>'
         '</div>'
         f'<div style="margin-top:24px;padding-top:24px;border-top:1px solid #F3F4F6;font-size:14px;color:#4B5563;line-height:1.7;">{summary}</div>'
         + (
@@ -1068,9 +1027,6 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         # Findings
         '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:14px;">Detailed Findings</div>'
         f'{detail_cards}'
-
-        # Accessibility
-        f'{accessibility_section}'
 
         # Sources
         f'{sources_section}'
