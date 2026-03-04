@@ -345,7 +345,7 @@ def audit_stream(sid):
                     try:
                         msg = client.chat.completions.create(
                             model="anthropic/claude-sonnet-4-6",
-                            max_tokens=4096,
+                            max_tokens=8192,
                             messages=[{"role": "user", "content": content}],
                             timeout=90,
                         )
@@ -440,7 +440,35 @@ def audit_stream(sid):
                 "high": h, "medium": m, "low": l,
             })
         except json.JSONDecodeError as exc:
-            yield evt({"type": "error", "message": f"Could not parse analysis: {exc}"})
+            # Try to recover truncated JSON by finding the last complete issue object
+            try:
+                last_bracket = text.rfind(']', 0, text.find('"issues"') + 1000 if '"issues"' in text else len(text))
+                # Find the last valid complete JSON object boundary before truncation
+                fixed = re.sub(r',\s*\{[^}]*$', '', text)  # remove last incomplete object
+                fixed = re.sub(r',\s*"[^"]*$', '', fixed)   # remove trailing incomplete key
+                fixed = re.sub(r'\s*$', '', fixed)
+                # Close any open arrays/objects
+                open_braces = fixed.count('{') - fixed.count('}')
+                open_brackets = fixed.count('[') - fixed.count(']')
+                fixed += ']' * open_brackets + '}' * open_braces
+                analysis = json.loads(fixed)
+                issues = analysis.get("issues", [])
+                ann_b64, ann_type = annotate_image(
+                    session.get("image_b64", ""),
+                    session.get("image_type", "image/png"),
+                    issues,
+                )
+                h = sum(1 for i in issues if i.get("severity") == "high")
+                m = sum(1 for i in issues if i.get("severity") == "medium")
+                l = sum(1 for i in issues if i.get("severity") == "low")
+                sessions[sid].update({
+                    "issues": issues, "annotated_b64": ann_b64, "annotated_type": ann_type,
+                    "screen_name": analysis.get("screen_name", ""),
+                    "summary":     analysis.get("summary", ""),
+                    "high": h, "medium": m, "low": l,
+                })
+            except Exception:
+                yield evt({"type": "error", "message": f"Could not parse analysis: {exc}"})
 
     return Response(
         stream_with_context(_generate()),
