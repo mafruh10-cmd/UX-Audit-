@@ -78,6 +78,7 @@ _TRAINING_FILES = {
     "ux_rules_batch4.md":     "UX Component Rules (Part 4)",
     "ux_rules_batch5.md":     "UX Component Rules (Part 5)",
     "training_wcag22.md":     "WCAG 2.2 — Web Content Accessibility Guidelines",
+    "training_upd.md":        "Universal Principles of Design — Lidwell, Holden & Butler (200 Principles)",
 }
 
 _PRINCIPLE_PATTERNS = (
@@ -178,7 +179,12 @@ Rules:
   "Practical UI — Spacing consistency: use a spacing scale",
   "Psych 101 (Kleinman) — Gestalt: Law of Proximity",
   "WCAG 2.2 — 1.4.3 Contrast Minimum (AA): normal text requires 4.5:1 contrast ratio",
-  "WCAG 2.2 — 2.4.7 Focus Visible (AA): keyboard focus indicator must be visible"
+  "WCAG 2.2 — 2.4.7 Focus Visible (AA): keyboard focus indicator must be visible",
+  "Universal Principles of Design — Aesthetic-Usability Effect: beautiful things are perceived as easier to use",
+  "Universal Principles of Design — Fitts' Law: larger and closer targets are faster to click",
+  "Universal Principles of Design — Progressive Disclosure: show only what is needed at each step",
+  "Universal Principles of Design — Signal-to-Noise Ratio: maximise relevant information, minimise clutter",
+  "Universal Principles of Design — Visibility: system status and available actions must be visible"
 - Focus on visually detectable accessibility issues: contrast ratios, color-only information, missing labels,
   touch target sizes, focus indicator absence, images of text, heading structure, icon-only buttons,
   placeholder-only form fields, error states without text labels.
@@ -848,6 +854,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         ("Psych 101",                                  "Paul Kleinman",                 "Psychological principles behind behaviour"),
         ("UI Design Tips",                             "",                              "Quick-reference design improvement patterns"),
         ("WCAG 2.2",                                   "W3C Web Accessibility Initiative", "Accessibility guidelines — Level A & AA compliance"),
+        ("Universal Principles of Design",             "Lidwell, Holden & Butler",         "200 cross-disciplinary design principles — perception, cognition, interaction"),
     ]
     book_card_html = ""
     for title, author, desc in book_cards:
