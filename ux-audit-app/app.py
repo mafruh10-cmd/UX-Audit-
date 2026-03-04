@@ -79,6 +79,7 @@ _TRAINING_FILES = {
     "ux_rules_batch5.md":     "UX Component Rules (Part 5)",
     "training_wcag22.md":     "WCAG 2.2 — Web Content Accessibility Guidelines",
     "training_upd.md":        "Universal Principles of Design — Lidwell, Holden & Butler (200 Principles)",
+    "training_doet.md":       "The Design of Everyday Things — Don Norman (Revised Edition)",
 }
 
 _PRINCIPLE_PATTERNS = (
@@ -184,7 +185,13 @@ Rules:
   "Universal Principles of Design — Fitts' Law: larger and closer targets are faster to click",
   "Universal Principles of Design — Progressive Disclosure: show only what is needed at each step",
   "Universal Principles of Design — Signal-to-Noise Ratio: maximise relevant information, minimise clutter",
-  "Universal Principles of Design — Visibility: system status and available actions must be visible"
+  "Universal Principles of Design — Visibility: system status and available actions must be visible",
+  "The Design of Everyday Things (Norman) — Affordance: element must communicate how it is used",
+  "The Design of Everyday Things (Norman) — Signifier: visible cues must indicate where to act",
+  "The Design of Everyday Things (Norman) — Gulf of Execution: user cannot figure out how to do what they want",
+  "The Design of Everyday Things (Norman) — Gulf of Evaluation: user cannot tell if their action worked",
+  "The Design of Everyday Things (Norman) — Feedback: every action must produce an immediate, clear response",
+  "The Design of Everyday Things (Norman) — Forcing Function: prevent irreversible actions with confirmation"
 - Focus on visually detectable accessibility issues: contrast ratios, color-only information, missing labels,
   touch target sizes, focus indicator absence, images of text, heading structure, icon-only buttons,
   placeholder-only form fields, error states without text labels.
@@ -855,6 +862,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         ("UI Design Tips",                             "",                              "Quick-reference design improvement patterns"),
         ("WCAG 2.2",                                   "W3C Web Accessibility Initiative", "Accessibility guidelines — Level A & AA compliance"),
         ("Universal Principles of Design",             "Lidwell, Holden & Butler",         "200 cross-disciplinary design principles — perception, cognition, interaction"),
+        ("The Design of Everyday Things",              "Don Norman",                       "Affordances, signifiers, feedback, mappings, constraints, human error"),
     ]
     book_card_html = ""
     for title, author, desc in book_cards:
