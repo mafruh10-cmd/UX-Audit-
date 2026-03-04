@@ -30,7 +30,7 @@ try:
 except ImportError:
     pass
 
-from openai import OpenAI
+import anthropic as _anthropic
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -303,43 +303,37 @@ def audit_stream(sid):
         def _run():
             try:
                 if not ANTHROPIC_API_KEY:
-                    raise ValueError("ANTHROPIC_API_KEY is not set in .env")
-                client = OpenAI(
-                    api_key=ANTHROPIC_API_KEY,
-                    base_url="https://openrouter.ai/api/v1",
-                )
-                # Build content in OpenAI vision format
+                    raise ValueError("ANTHROPIC_API_KEY is not set")
+                client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+                # Build content blocks for Anthropic Messages API
                 content = []
+                text_blocks = ""
                 if KNOWLEDGE_BASE:
-                    content.append({
-                        "type": "text",
-                        "text": (
-                            "=== SAASFACTOR UX TRAINING KNOWLEDGE BASE ===\n"
-                            "The following is extracted from your UX training curriculum. "
-                            "Use it to ground every finding in a specific source.\n"
-                            + KNOWLEDGE_BASE
-                        ),
-                    })
+                    text_blocks += (
+                        "=== SAASFACTOR UX TRAINING KNOWLEDGE BASE ===\n"
+                        "The following is extracted from your UX training curriculum. "
+                        "Use it to ground every finding in a specific source.\n"
+                        + KNOWLEDGE_BASE + "\n\n"
+                    )
                 if session.get("website_context"):
-                    content.append({
-                        "type": "text",
-                        "text": (
-                            "\n=== PRODUCT WEBSITE CONTEXT ===\n"
-                            f"Website URL: {session.get('website_url', '')}\n"
-                            "The following text was extracted from the product's homepage. "
-                            "Use it to understand what the product is, who it serves, and "
-                            "tailor every finding to their specific context.\n\n"
-                            + session["website_context"]
-                        ),
-                    })
+                    text_blocks += (
+                        "=== PRODUCT WEBSITE CONTEXT ===\n"
+                        f"Website URL: {session.get('website_url', '')}\n"
+                        "The following text was extracted from the product's homepage. "
+                        "Use it to understand what the product is, who it serves, and "
+                        "tailor every finding to their specific context.\n\n"
+                        + session["website_context"] + "\n\n"
+                    )
+                text_blocks += "=== UI SCREENSHOT TO AUDIT ===\n"
+                if text_blocks:
+                    content.append({"type": "text", "text": text_blocks})
                 content.append({
-                    "type": "text",
-                    "text": "\n=== UI SCREENSHOT TO AUDIT ===",
-                })
-                content.append({
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{session['media_type']};base64,{session['image_b64']}",
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": session["media_type"],
+                        "data": session["image_b64"],
                     },
                 })
                 content.append({"type": "text", "text": AUDIT_PROMPT})
@@ -348,20 +342,19 @@ def audit_stream(sid):
                 last_exc = None
                 for attempt in range(2):
                     try:
-                        msg = client.chat.completions.create(
-                            model="anthropic/claude-sonnet-4.6",
+                        msg = client.messages.create(
+                            model="claude-sonnet-4-6",
                             max_tokens=4096,
                             messages=[{"role": "user", "content": content}],
-                            timeout=90,
                         )
-                        result_box[0] = msg.choices[0].message.content
+                        result_box[0] = msg.content[0].text
                         return
                     except Exception as exc:
                         last_exc = exc
                         err_str = str(exc)
                         print(f"[api] Error (attempt {attempt+1}/2): {err_str[:200]}")
                         if any(k in err_str.lower() for k in ("529", "overload", "rate limit", "too many")):
-                            wait = 8 * (attempt + 1)  # 8s, 16s
+                            wait = 8 * (attempt + 1)
                             print(f"[retry] API busy, waiting {wait}s")
                             time.sleep(wait)
                         else:
