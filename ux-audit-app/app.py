@@ -30,7 +30,7 @@ try:
 except ImportError:
     pass
 
-import anthropic as _anthropic
+from openai import OpenAI as _OpenAI
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -304,9 +304,12 @@ def audit_stream(sid):
             try:
                 if not ANTHROPIC_API_KEY:
                     raise ValueError("ANTHROPIC_API_KEY is not set")
-                client = _anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+                client = _OpenAI(
+                    api_key=ANTHROPIC_API_KEY,
+                    base_url="https://openrouter.ai/api/v1",
+                )
 
-                # Build content blocks for Anthropic Messages API
+                # Build content in OpenAI vision format
                 content = []
                 text_blocks = ""
                 if KNOWLEDGE_BASE:
@@ -329,11 +332,9 @@ def audit_stream(sid):
                 if text_blocks:
                     content.append({"type": "text", "text": text_blocks})
                 content.append({
-                    "type": "image",
-                    "source": {
-                        "type": "base64",
-                        "media_type": session["media_type"],
-                        "data": session["image_b64"],
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:{session['media_type']};base64,{session['image_b64']}",
                     },
                 })
                 content.append({"type": "text", "text": AUDIT_PROMPT})
@@ -342,12 +343,13 @@ def audit_stream(sid):
                 last_exc = None
                 for attempt in range(2):
                     try:
-                        msg = client.messages.create(
-                            model="claude-sonnet-4-6",
+                        msg = client.chat.completions.create(
+                            model="anthropic/claude-sonnet-4-6",
                             max_tokens=4096,
                             messages=[{"role": "user", "content": content}],
+                            timeout=90,
                         )
-                        result_box[0] = msg.content[0].text
+                        result_box[0] = msg.choices[0].message.content
                         return
                     except Exception as exc:
                         last_exc = exc
