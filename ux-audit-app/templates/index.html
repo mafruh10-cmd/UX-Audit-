@@ -412,11 +412,13 @@ const STEPS = [
   'Generating audit report',
 ];
 
-let sessionId    = null;
-let selectedFile = null;
-let auditData    = null;
-let reportUrl    = null;
-let reportFilename = 'ux_audit.html';
+let sessionId       = null;
+let selectedFile    = null;
+let selectedFileB64 = '';    // base64 of original image (no data: prefix)
+let selectedFileMime = 'image/png';
+let auditData       = null;
+let reportUrl       = null;
+let reportFilename  = 'ux_audit.html';
 
 // ── Init ────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -464,11 +466,15 @@ function handleFile(file) {
   }
   hideUploadErr();
 
-  selectedFile = file;
+  selectedFile     = file;
+  selectedFileMime = file.type || 'image/png';
   const reader = new FileReader();
   reader.onload = e => {
-    document.getElementById('previewImg').src = e.target.result;
-    document.getElementById('thumbImg').src   = e.target.result;
+    const dataUrl = e.target.result;
+    // Store base64 content (strip the data:...;base64, prefix)
+    selectedFileB64 = dataUrl.split(',')[1] || '';
+    document.getElementById('previewImg').src = dataUrl;
+    document.getElementById('thumbImg').src   = dataUrl;
   };
   reader.readAsDataURL(file);
   document.getElementById('previewName').textContent = file.name;
@@ -653,14 +659,14 @@ async function handleDownload(mode) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name:         document.getElementById('inputName').value.trim(),
+        name:        document.getElementById('inputName').value.trim(),
         email,
-        // Pass full audit data so download works in serverless environments
-        // where server-side sessions don't persist between requests
-        analysis:      auditData?.analysis      || null,
-        annotated_b64: auditData?.annotated_b64 || '',
-        ann_type:      auditData?.ann_type      || 'image/png',
-        website_url:   auditData?.website_url   || '',
+        // Pass analysis JSON + original image so download works in serverless
+        // environments where server-side sessions don't persist between requests
+        analysis:    auditData?.analysis   || null,
+        image_b64:   selectedFileB64,
+        media_type:  selectedFileMime,
+        website_url: auditData?.website_url || '',
       }),
     });
 

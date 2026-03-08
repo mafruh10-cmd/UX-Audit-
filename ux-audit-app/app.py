@@ -480,12 +480,11 @@ def audit_stream(sid):
                 "screen_name": analysis.get("screen_name", ""),
                 "summary":     analysis.get("summary", ""),
                 "high": h, "medium": m, "low": l,
-                # Full data needed for report generation — stored client-side
-                # to survive serverless statelessness
-                "analysis":      analysis,
-                "annotated_b64": ann_b64,
-                "ann_type":      ann_type,
-                "website_url":   session.get("website_url", ""),
+                # Analysis JSON stored client-side to survive serverless statelessness.
+                # Image is NOT sent here — client passes the original file on download
+                # and the server re-annotates it then.
+                "analysis":    analysis,
+                "website_url": session.get("website_url", ""),
             })
         except json.JSONDecodeError as exc:
             # Try to recover truncated JSON by finding the last complete issue object
@@ -534,27 +533,31 @@ def download_report(sid):
     if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
         return jsonify({"error": "Please enter a valid email address"}), 400
 
-    # Analysis data is passed from the client (stored there after SSE complete event)
+    # Analysis JSON + original image are passed from the client.
     # This avoids server-side session dependency, which breaks in serverless environments
-    analysis     = data.get("analysis") or {}
-    annotated_b64 = data.get("annotated_b64", "")
-    ann_type      = data.get("ann_type", "image/png")
-    site          = data.get("website_url", "")
+    # where each request hits a fresh function instance with no shared memory.
+    analysis   = data.get("analysis") or {}
+    image_b64  = data.get("image_b64", "")
+    media_type = data.get("media_type", "image/png")
+    site       = data.get("website_url", "")
 
-    # Fall back to session if available (local/non-serverless deployments)
+    # Fall back to session if available (local / non-serverless deployments)
     if not analysis and sid in sessions:
-        s = sessions[sid]
-        analysis      = s.get("analysis", {})
-        annotated_b64 = s.get("annotated_b64", "")
-        ann_type      = s.get("ann_type", "image/png")
-        site          = s.get("website_url", "")
+        s          = sessions[sid]
+        analysis   = s.get("analysis", {})
+        image_b64  = s.get("image_b64", "")
+        media_type = s.get("media_type", "image/png")
+        site       = s.get("website_url", "")
 
     if not analysis:
         return jsonify({"error": "Report data not found. Please run the audit again."}), 400
 
     _log_lead(email, name, site, analysis.get("screen_name", "Unknown"))
 
-    html  = _build_report(analysis, annotated_b64, ann_type, name, site)
+    # Re-annotate the image with issue markers
+    ann_b64, ann_type = annotate_image(image_b64, media_type, analysis.get("issues", []))
+
+    html  = _build_report(analysis, ann_b64, ann_type, name, site)
     slug  = re.sub(r"[^\w\-]", "_", analysis.get("screen_name", "screen").lower())
     fname = f"ux_audit_{slug}_{datetime.utcnow().strftime('%Y%m%d')}.html"
 
