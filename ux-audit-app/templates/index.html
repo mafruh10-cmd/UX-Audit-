@@ -371,6 +371,12 @@ body{
           Download Report
         </button>
       </div>
+      <script>
+        // Update button label on mobile so it sets expectations correctly
+        if (_isMobile) {
+          document.getElementById('downloadBtn').textContent = 'View Report';
+        }
+      </script>
     </form>
   </div>
 
@@ -387,14 +393,20 @@ body{
     <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">
       Your UX audit report is ready to view.
     </p>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <button class="btn btn-primary btn-sm" onclick="doneDownload()">
+    <div style="display:flex;flex-direction:column;gap:10px;" id="doneButtons">
+      <button class="btn btn-primary btn-sm" id="doneMainBtn" onclick="doneDownload()">
         Download Report
       </button>
       <button class="btn btn-ghost btn-sm" onclick="donePreview()">
         Open in Browser
       </button>
     </div>
+    <script>
+      if (_isMobile) {
+        document.getElementById('doneMainBtn').textContent = 'View Report';
+        document.getElementById('doneMainBtn').onclick = donePreview;
+      }
+    </script>
   </div>
 
 </main>
@@ -659,8 +671,14 @@ function fillReadyScreen(d) {
   if (d.low)    chips.innerHTML += `<span class="chip chip-l">${d.low} Low</span>`;
 }
 
+// ── Mobile detection ─────────────────────────────
+const _isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 // ── Download / Preview ────────────────────────────
 async function handleDownload(mode) {
+  // On mobile, downloading an HTML file gives an unusable file prompt.
+  // Always open in browser instead so Safari/Chrome renders it directly.
+  if (_isMobile) mode = 'preview';
   const email = document.getElementById('inputEmail').value.trim();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     document.getElementById('inputEmail').classList.add('error');
