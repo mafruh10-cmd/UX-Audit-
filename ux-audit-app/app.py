@@ -1022,7 +1022,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'<div class="detail-card fade-section" style="background:#fff;border-radius:14px;overflow:hidden;'
             f'margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.04);'
             f'transition-delay:{delay}ms;">'
-            f'<div style="border-left:4px solid {border};padding:20px 24px;'
+            f'<div class="detail-header-inner" style="border-left:4px solid {border};padding:20px 24px;'
             f'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">'
             f'<div>'
             f'<div style="font-size:11px;font-weight:700;color:#9CA3AF;letter-spacing:.1em;'
@@ -1031,8 +1031,8 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
             f'<div style="font-size:17px;font-weight:700;color:#1A1A1A;">{iss.get("title","")}</div>'
             f'<div style="font-size:12px;color:#6B7280;margin-top:4px;">📍 {iss.get("location","")}</div>'
             f'</div>{_badge(sev)}</div>'
-            f'<div style="padding:0 24px 24px;">'
-            f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">'
+            f'<div class="detail-body" style="padding:0 24px 24px;">'
+            f'<div class="prob-rec-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">'
             f'<div style="background:#FFF8F6;border-radius:10px;padding:16px;">'
             f'<div style="font-size:10px;font-weight:700;text-transform:uppercase;'
             f'letter-spacing:.08em;color:#F05023;margin-bottom:8px;">The Problem</div>'
@@ -1111,7 +1111,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         'This audit is grounded in the Saasfactor UX training curriculum. Each finding is '
         'mapped to a specific principle, chapter, or concept from the following books:'
         '</div>'
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">{book_card_html}</div>'
+        f'<div class="sources-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">{book_card_html}</div>'
         '</div>'
     )
 
@@ -1139,6 +1139,27 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         ".score-ring{transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1);}"
         # Severity bars
         ".sev-bar-fill{transition:width 1s ease;}"
+        # ── Mobile responsive ──────────────────────────────────────────
+        "@media(max-width:640px){"
+        ".page{padding:20px 14px;}"
+        # Cover
+        ".cover-section{padding:32px 20px 28px!important;}"
+        ".cover-title{font-size:26px!important;line-height:1.2!important;}"
+        # Overview: 4-col → 2×2 grid
+        ".ov-grid{grid-template-columns:1fr 1fr!important;gap:16px!important;}"
+        ".ov-col{border-right:none!important;border-bottom:none!important;"
+        "padding:0!important;}"
+        # Issues at a glance: 4-col → 2-col
+        ".glance-grid{grid-template-columns:repeat(2,1fr)!important;}"
+        # Problem / Recommendation: 2-col → 1-col stacked
+        ".prob-rec-grid{grid-template-columns:1fr!important;}"
+        # Sources: 2-col → 1-col
+        ".sources-grid{grid-template-columns:1fr!important;}"
+        # Detail card header: make badge wrap below title on narrow screens
+        ".detail-header{flex-wrap:wrap!important;gap:8px!important;}"
+        ".detail-body{padding:0 16px 20px!important;}"
+        ".detail-header-inner{padding:16px!important;}"
+        "}"
     )
 
     # Inline JS — all in one string to avoid f-string brace conflicts
@@ -1191,7 +1212,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         f"<style>{REPORT_CSS}</style></head><body>"
 
         # Cover
-        '<div style="background:#0D0D0D;position:relative;overflow:hidden;padding:56px 48px 52px;">'
+        '<div class="cover-section" style="background:#0D0D0D;position:relative;overflow:hidden;padding:56px 48px 52px;">'
         '<div style="position:absolute;inset:0;background:'
         'radial-gradient(ellipse 55% 65% at 92% 5%,rgba(240,80,35,.26) 0%,transparent 58%),'
         'radial-gradient(ellipse 38% 45% at 5% 90%,rgba(240,80,35,.12) 0%,transparent 55%);"></div>'
@@ -1201,7 +1222,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '<div style="max-width:860px;margin:0 auto;position:relative;z-index:1;">'
         f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;"><div></div>{logo_white_tag}</div>'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#F05023;margin-bottom:16px;">UX Audit Report</div>'
-        f'<h1 style="font-size:42px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.02em;margin-bottom:8px;">{screen_name}</h1>'
+        f'<h1 class="cover-title" style="font-size:42px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.02em;margin-bottom:8px;">{screen_name}</h1>'
         f'<div style="color:#9CA3AF;font-size:14px;margin-top:16px;">{today}</div>'
         f'{client_info}</div></div>'
 
@@ -1211,26 +1232,26 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '<div class="fade-section" style="background:#fff;border-radius:14px;padding:32px;margin-bottom:20px;'
         'box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);">'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:24px;">Audit Overview</div>'
-        '<div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;align-items:start;">'
+        '<div class="ov-grid" style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;align-items:start;">'
         # Col 1: Score ring
-        '<div style="padding-right:28px;border-right:1px solid #F3F4F6;display:flex;flex-direction:column;align-items:center;">'
+        '<div class="ov-col" style="padding-right:28px;border-right:1px solid #F3F4F6;display:flex;flex-direction:column;align-items:center;">'
         f'{score_ring_svg}'
         '<div style="font-size:10px;color:#9CA3AF;font-weight:500;text-align:center;">Overall Score</div>'
         f'<div style="font-size:11px;font-weight:600;color:#6B7280;margin-top:2px;text-align:center;">{score_label}</div>'
         '</div>'
         # Col 2: Issues count + severity bars
-        '<div style="padding:0 24px;border-right:1px solid #F3F4F6;">'
+        '<div class="ov-col" style="padding:0 24px;border-right:1px solid #F3F4F6;">'
         '<div style="font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:8px;">Issues Found</div>'
         f'<div style="font-size:28px;font-weight:800;color:#1A1A1A;" class="count-num" data-value="{len(issues)}">{len(issues)}</div>'
         f'<div style="font-size:12px;color:#6B7280;margin-top:2px;">{h}H · {m}M · {l}L</div>'
         f'{sev_bar_section}'
         '</div>'
         # Col 3: Screen
-        '<div style="padding:0 24px;border-right:1px solid #F3F4F6;">'
+        '<div class="ov-col" style="padding:0 24px;border-right:1px solid #F3F4F6;">'
         '<div style="font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:8px;">Screen Audited</div>'
         f'<div style="font-size:15px;font-weight:700;color:#1A1A1A;line-height:1.3;">{screen_name}</div></div>'
         # Col 4: Audited By + Accessibility score
-        '<div style="padding-left:24px;">'
+        '<div class="ov-col" style="padding-left:24px;">'
         '<div style="font-size:11px;color:#9CA3AF;font-weight:500;margin-bottom:8px;">Audited By</div>'
         '<div style="font-size:13px;font-weight:600;color:#1A1A1A;">Saasfactor</div>'
         '<div style="font-size:12px;color:#6B7280;margin-top:2px;"><a href="https://saasfactor.co" style="color:#F05023;text-decoration:none;">saasfactor.co</a></div>'
@@ -1252,7 +1273,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         # Issues at a glance
         '<div style="margin-bottom:20px;">'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:14px;">Issues at a Glance</div>'
-        f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">{glance_cards}</div>'
+        f'<div class="glance-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">{glance_cards}</div>'
         '</div>'
 
         # Annotated screenshot
