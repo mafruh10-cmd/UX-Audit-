@@ -480,6 +480,12 @@ def audit_stream(sid):
                 "screen_name": analysis.get("screen_name", ""),
                 "summary":     analysis.get("summary", ""),
                 "high": h, "medium": m, "low": l,
+                # Full data needed for report generation — stored client-side
+                # to survive serverless statelessness
+                "analysis":      analysis,
+                "annotated_b64": ann_b64,
+                "ann_type":      ann_type,
+                "website_url":   session.get("website_url", ""),
             })
         except json.JSONDecodeError as exc:
             # Try to recover truncated JSON by finding the last complete issue object
@@ -521,30 +527,35 @@ def audit_stream(sid):
 
 @app.route("/api/download/<sid>", methods=["POST"])
 def download_report(sid):
-    if sid not in sessions:
-        return jsonify({"error": "Session not found"}), 404
-    session = sessions[sid]
-    if session["status"] != "ready" or not session["analysis"]:
-        return jsonify({"error": "Report not ready yet"}), 400
-
     data = request.get_json(force=True) or {}
     email = data.get("email", "").strip()
     name  = data.get("name", "").strip()
-    site  = session.get("website_url", "")
 
     if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
         return jsonify({"error": "Please enter a valid email address"}), 400
 
-    # Log the lead
-    _log_lead(email, name, site, session["analysis"].get("screen_name", "Unknown"))
+    # Analysis data is passed from the client (stored there after SSE complete event)
+    # This avoids server-side session dependency, which breaks in serverless environments
+    analysis     = data.get("analysis") or {}
+    annotated_b64 = data.get("annotated_b64", "")
+    ann_type      = data.get("ann_type", "image/png")
+    site          = data.get("website_url", "")
 
-    # Use annotated image if available, fall back to original
-    img_b64  = session.get("annotated_b64") or session["image_b64"]
-    img_type = session.get("ann_type") or session["media_type"]
+    # Fall back to session if available (local/non-serverless deployments)
+    if not analysis and sid in sessions:
+        s = sessions[sid]
+        analysis      = s.get("analysis", {})
+        annotated_b64 = s.get("annotated_b64", "")
+        ann_type      = s.get("ann_type", "image/png")
+        site          = s.get("website_url", "")
 
-    html = _build_report(session["analysis"], img_b64, img_type, name, site)
+    if not analysis:
+        return jsonify({"error": "Report data not found. Please run the audit again."}), 400
 
-    slug  = re.sub(r"[^\w\-]", "_", session["analysis"].get("screen_name", "screen").lower())
+    _log_lead(email, name, site, analysis.get("screen_name", "Unknown"))
+
+    html  = _build_report(analysis, annotated_b64, ann_type, name, site)
+    slug  = re.sub(r"[^\w\-]", "_", analysis.get("screen_name", "screen").lower())
     fname = f"ux_audit_{slug}_{datetime.utcnow().strftime('%Y%m%d')}.html"
 
     return Response(

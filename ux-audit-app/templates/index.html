@@ -653,8 +653,14 @@ async function handleDownload(mode) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name:  document.getElementById('inputName').value.trim(),
+        name:         document.getElementById('inputName').value.trim(),
         email,
+        // Pass full audit data so download works in serverless environments
+        // where server-side sessions don't persist between requests
+        analysis:      auditData?.analysis      || null,
+        annotated_b64: auditData?.annotated_b64 || '',
+        ann_type:      auditData?.ann_type      || 'image/png',
+        website_url:   auditData?.website_url   || '',
       }),
     });
 
