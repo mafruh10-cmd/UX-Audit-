@@ -7,11 +7,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
+/* ── Saasfactor brand tokens ── */
+:root{
+  --cyan:#1AC8D4;
+  --cyan-light:rgba(26,200,212,.10);
+  --cyan-mid:rgba(26,200,212,.18);
+  --bg:#EBEBEC;
+  --card:#FFFFFF;
+  --border:#E0E1E4;
+  --text:#1A1A1A;
+  --muted:#888;
+  --label:#AAAAAA;
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
 body{
   font-family:'Inter',system-ui,sans-serif;
-  background:#F5F5F7;color:#1A1A1A;
+  background:var(--bg);color:var(--text);
   font-size:14px;line-height:1.6;
   -webkit-font-smoothing:antialiased;
   display:flex;flex-direction:column;min-height:100vh;
@@ -19,67 +32,76 @@ body{
 
 /* ── Header ── */
 .header{
-  background:#fff;border-bottom:1px solid #E5E5E5;
-  padding:0 32px;height:56px;
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 32px;height:60px;
   display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:10;
 }
-.header-left{display:flex;align-items:center;gap:10px;}
-.header-logo{height:26px;display:block;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header-logo{height:28px;display:block;}
 .header-badge{
-  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:#F05023;background:#FEF0EC;padding:2px 8px;border-radius:20px;
+  font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+  color:var(--cyan);background:var(--cyan-light);
+  padding:3px 10px;border-radius:20px;border:1px solid var(--cyan-mid);
 }
-.header-meta{font-size:12px;color:#9CA3AF;}
+.header-meta{font-size:12px;color:var(--label);letter-spacing:.04em;}
 
 /* ── Main ── */
-.main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px;}
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:56px 24px;}
 
 /* ── Card ── */
 .card{
-  background:#fff;border-radius:16px;
-  box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.05);
-  padding:40px;width:100%;max-width:520px;
+  background:var(--card);
+  border-radius:20px;
+  border:1px solid var(--border);
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+  padding:44px;width:100%;max-width:520px;
 }
 
 /* ── Screens ── */
 .screen{display:none;}
 .screen.active{display:block;}
 
+/* ── Section eyebrow label ── */
+.eyebrow{
+  font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--label);margin-bottom:8px;display:block;
+}
+
 /* ── Upload ── */
 .drop-zone{
-  border:2px dashed #D1D5DB;border-radius:12px;
-  padding:48px 32px;text-align:center;cursor:pointer;
+  border:2px dashed var(--border);border-radius:14px;
+  padding:44px 32px;text-align:center;cursor:pointer;
   transition:border-color .15s,background .15s;position:relative;
 }
-.drop-zone:hover,.drop-zone.dragover{border-color:#F05023;background:#FFF8F6;}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--cyan);background:var(--cyan-light);}
 .drop-zone input[type=file]{
   position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
 }
 .drop-icon{
-  width:48px;height:48px;margin:0 auto 16px;
-  background:#F5F5F7;border-radius:12px;
+  width:52px;height:52px;margin:0 auto 16px;
+  background:var(--bg);border-radius:14px;
   display:flex;align-items:center;justify-content:center;
 }
-.drop-title{font-size:16px;font-weight:600;margin-bottom:4px;}
-.drop-sub{font-size:13px;color:#6B7280;margin-bottom:12px;}
+.drop-title{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text);}
+.drop-sub{font-size:13px;color:var(--muted);margin-bottom:14px;}
 .drop-rules{
-  font-size:11px;color:#9CA3AF;
-  padding:5px 12px;background:#F9FAFB;
-  border-radius:20px;display:inline-block;
+  font-size:11px;color:var(--label);letter-spacing:.04em;
+  padding:5px 14px;background:var(--bg);
+  border-radius:20px;display:inline-block;border:1px solid var(--border);
 }
 
 /* Preview */
-.preview-wrap{margin-top:16px;border-radius:10px;overflow:hidden;border:1px solid #E5E5E5;display:none;}
+.preview-wrap{margin-top:16px;border-radius:12px;overflow:hidden;border:1px solid var(--border);display:none;}
 .preview-wrap img{width:100%;display:block;max-height:180px;object-fit:cover;}
 .preview-bar{
   padding:10px 14px;font-size:12px;color:#4B5563;
   display:flex;align-items:center;justify-content:space-between;
-  border-top:1px solid #E5E5E5;
+  border-top:1px solid var(--border);
 }
 .preview-remove{
   background:none;border:none;cursor:pointer;
-  color:#9CA3AF;font-size:12px;font-family:inherit;
+  color:var(--label);font-size:12px;font-family:inherit;
 }
 .preview-remove:hover{color:#DC2626;}
 
@@ -87,25 +109,26 @@ body{
 .btn{
   width:100%;padding:13px 20px;border-radius:10px;
   font-size:14px;font-weight:600;cursor:pointer;
-  border:none;transition:opacity .15s,transform .1s;
-  font-family:inherit;letter-spacing:-.01em;
+  border:none;transition:opacity .15s,transform .1s,background .15s;
+  font-family:inherit;letter-spacing:.01em;
 }
 .btn:active:not(:disabled){transform:scale(.98);}
-.btn-primary{background:#F05023;color:#fff;margin-top:20px;}
+.btn-primary{background:var(--cyan);color:#fff;margin-top:20px;}
+.btn-primary:hover:not(:disabled){background:#16b5c0;}
 .btn-primary:disabled{opacity:.4;cursor:default;}
 .btn-ghost{
-  background:transparent;color:#6B7280;
-  border:1px solid #E5E5E5;margin-top:12px;
+  background:transparent;color:var(--muted);
+  border:1px solid var(--border);margin-top:12px;
 }
-.btn-ghost:hover:not(:disabled){background:#F9FAFB;}
+.btn-ghost:hover:not(:disabled){background:var(--bg);border-color:var(--cyan);color:var(--cyan);}
 .btn-ghost:disabled{opacity:.4;cursor:default;}
-.btn-sm{width:auto;padding:11px 24px;margin:0 auto;display:block;}
+.btn-sm{width:auto;padding:11px 28px;margin:0 auto;display:block;}
 
 /* ── Processing steps ── */
 .progress-header{margin-bottom:28px;}
-.progress-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;margin-bottom:16px;border:1px solid #E5E5E5;}
+.progress-thumb{width:48px;height:48px;border-radius:10px;object-fit:cover;margin-bottom:16px;border:1px solid var(--border);}
 .progress-title{font-size:20px;font-weight:700;}
-.progress-sub{font-size:13px;color:#6B7280;margin-top:4px;}
+.progress-sub{font-size:13px;color:var(--muted);margin-top:4px;}
 
 .steps-list{list-style:none;display:flex;flex-direction:column;}
 .step-item{
@@ -119,84 +142,88 @@ body{
   display:flex;align-items:center;justify-content:center;
   font-size:12px;font-weight:600;transition:all .3s;
 }
-.step-dot.pending{background:#F3F4F6;color:#9CA3AF;}
-.step-dot.active{background:#FEF0EC;border:2px solid #F05023;}
-.step-dot.done{background:#F05023;color:#fff;}
+.step-dot.pending{background:var(--bg);color:var(--label);border:1px solid var(--border);}
+.step-dot.active{background:var(--cyan-light);border:2px solid var(--cyan);}
+.step-dot.done{background:var(--cyan);color:#fff;}
 
 .step-label{font-size:13px;font-weight:500;transition:color .2s;}
-.step-item.pending .step-label{color:#9CA3AF;}
-.step-item.active  .step-label{color:#1A1A1A;font-weight:600;}
-.step-item.done    .step-label{color:#6B7280;}
+.step-item.pending .step-label{color:var(--label);}
+.step-item.active  .step-label{color:var(--text);font-weight:600;}
+.step-item.done    .step-label{color:var(--muted);}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{
   width:13px;height:13px;
-  border:2px solid #FBC8B4;border-top-color:#F05023;
+  border:2px solid var(--cyan-mid);border-top-color:var(--cyan);
   border-radius:50%;animation:spin .7s linear infinite;
 }
 
 /* ── Step 5 progress bar ── */
 #step5Progress{display:none;margin-top:14px;padding:0 2px;}
-.pbar-track{height:5px;background:#F3F4F6;border-radius:99px;overflow:hidden;}
-.pbar-fill{height:100%;background:#F05023;border-radius:99px;width:0%;transition:width .4s ease;}
-.pbar-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:#9CA3AF;}
+.pbar-track{height:4px;background:var(--bg);border-radius:99px;overflow:hidden;border:1px solid var(--border);}
+.pbar-fill{height:100%;background:var(--cyan);border-radius:99px;width:0%;transition:width .4s ease;}
+.pbar-meta{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--label);}
 
 /* ── Ready screen ── */
 .ready-icon{
-  width:52px;height:52px;background:#ECFDF5;border-radius:50%;
+  width:52px;height:52px;background:var(--cyan-light);border-radius:50%;
+  border:1px solid var(--cyan-mid);
   display:flex;align-items:center;justify-content:center;margin-bottom:16px;
 }
 .score-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
 .score-pill{
   display:inline-flex;align-items:center;gap:6px;
-  background:#F5F5F7;border-radius:20px;padding:6px 14px;
+  background:var(--bg);border-radius:20px;padding:6px 16px;
+  border:1px solid var(--border);
 }
-.score-num{font-size:20px;font-weight:800;color:#1A1A1A;}
-.score-lbl{font-size:12px;color:#6B7280;}
+.score-num{font-size:20px;font-weight:800;color:var(--text);}
+.score-lbl{font-size:12px;color:var(--muted);}
 .chip{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
 .chip-h{background:#FEE2E2;color:#DC2626;}
 .chip-m{background:#FEF3C7;color:#D97706;}
-.chip-l{background:#F3F4F6;color:#6B7280;}
+.chip-l{background:var(--bg);color:var(--muted);border:1px solid var(--border);}
 
 .summary-box{
-  background:#F9FAFB;border-radius:10px;
+  background:var(--bg);border-radius:12px;
+  border:1px solid var(--border);
   padding:14px 16px;margin-bottom:24px;
   font-size:13px;color:#4B5563;line-height:1.7;
 }
 
 /* ── Form ── */
-.form-label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px;}
-.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--label);margin-bottom:6px;}
+.form-group{margin-bottom:16px;}
 .form-input{
-  width:100%;padding:10px 14px;
-  border:1px solid #E5E5E5;border-radius:8px;
-  font-size:14px;font-family:inherit;color:#1A1A1A;
-  background:#fff;outline:none;transition:border-color .15s;
+  width:100%;padding:11px 14px;
+  border:1px solid var(--border);border-radius:10px;
+  font-size:14px;font-family:inherit;color:var(--text);
+  background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;
 }
-.form-input:focus{border-color:#F05023;box-shadow:0 0 0 3px rgba(240,80,35,.08);}
+.form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-light);}
 .form-input.error{border-color:#DC2626;}
 .form-error{font-size:11px;color:#DC2626;margin-top:4px;display:none;}
 
 /* ── Done screen ── */
 .done-icon{
-  width:64px;height:64px;background:#ECFDF5;border-radius:50%;
+  width:64px;height:64px;background:var(--cyan-light);border-radius:50%;
+  border:1px solid var(--cyan-mid);
   display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
 }
 
 /* ── Footer ── */
-.footer{text-align:center;padding:20px;font-size:12px;color:#9CA3AF;}
-.footer a{color:#9CA3AF;text-decoration:none;}
-.footer a:hover{color:#6B7280;}
+.footer{text-align:center;padding:20px;font-size:12px;color:var(--label);}
+.footer a{color:var(--label);text-decoration:none;}
+.footer a:hover{color:var(--cyan);}
 
 /* ── Error state ── */
 .error-banner{
-  background:#FFF1F0;border:1px solid #FCA5A5;border-radius:8px;
+  background:#FFF1F0;border:1px solid #FCA5A5;border-radius:10px;
   padding:12px 16px;margin-top:12px;
   font-size:13px;color:#DC2626;display:none;
 }
 /* ── Server offline banner ── */
 .offline-banner{
-  position:fixed;top:56px;left:0;right:0;z-index:20;
+  position:fixed;top:60px;left:0;right:0;z-index:20;
   background:#1A1A1A;color:#fff;
   padding:12px 32px;font-size:13px;
   display:none;align-items:center;justify-content:center;gap:10px;
@@ -234,8 +261,9 @@ body{
   <!-- ── Screen 1: Upload ── -->
   <div id="screen-upload" class="screen card active">
     <div style="margin-bottom:24px;">
-      <h1 style="font-size:22px;font-weight:700;">Upload your UI screen</h1>
-      <p style="font-size:13px;color:#6B7280;margin-top:6px;">
+      <span class="eyebrow">UX Audit</span>
+      <h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;">Upload your UI screen</h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6;">
         Drop a single screenshot and we'll generate a full UX audit report.
       </p>
     </div>
@@ -264,15 +292,12 @@ body{
     </div>
 
     <div style="margin-top:20px;">
-      <label class="form-label" style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
-        Your website URL <span style="color:#F05023;">*</span>
+      <label class="form-label">
+        Your website URL <span style="color:var(--cyan);">*</span>
       </label>
       <input type="url" id="inputWebsiteUrl" class="form-input"
         placeholder="https://yourproduct.com"
-        style="width:100%;padding:10px 14px;border:1px solid #D1D5DB;border-radius:8px;
-               font-size:13px;font-family:inherit;outline:none;transition:border-color .15s;"
-        oninput="checkAuditReady()"
-        onfocus="this.style.borderColor='#F05023'" onblur="this.style.borderColor='#D1D5DB'"/>
+        oninput="checkAuditReady()"/>
       <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">
         We'll read your homepage to tailor the audit to your product's context.
       </div>
@@ -308,12 +333,12 @@ body{
   <div id="screen-ready" class="screen card">
     <div class="ready-icon">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-        stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        stroke="#1AC8D4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="m5 13 4 4L19 7"/>
       </svg>
     </div>
-    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">Your audit is ready</h2>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:16px;" id="readyScreenName"></p>
+    <h2 style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;">Your audit is ready</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;" id="readyScreenName"></p>
 
     <div class="score-row">
       <div class="score-pill">
@@ -326,9 +351,7 @@ body{
 
     <div class="summary-box" id="readySummary"></div>
 
-    <div style="font-size:13px;font-weight:600;color:#1A1A1A;margin-bottom:16px;">
-      Enter your details to access the full report
-    </div>
+    <span class="eyebrow" style="margin-bottom:12px;">Enter your details to access the full report</span>
 
     <form id="downloadForm" onsubmit="return false;">
       <div class="form-group">
@@ -337,7 +360,7 @@ body{
       </div>
       <div class="form-group">
         <label class="form-label">
-          Email address <span style="color:#F05023;">*</span>
+          Email address <span style="color:var(--cyan);">*</span>
         </label>
         <input type="email" id="inputEmail" class="form-input" placeholder="jane@company.com" required/>
         <div class="form-error" id="emailError">Please enter a valid email address.</div>
@@ -356,12 +379,12 @@ body{
   <div id="screen-done" class="screen card" style="text-align:center;">
     <div class="done-icon">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-        stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        stroke="#1AC8D4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="m5 13 4 4L19 7"/>
       </svg>
     </div>
-    <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Report delivered</h2>
-    <p style="font-size:13px;color:#6B7280;margin-bottom:24px;">
+    <h2 style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px;">Report delivered</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">
       Your UX audit report is ready to view.
     </p>
     <div style="display:flex;flex-direction:column;gap:10px;">
