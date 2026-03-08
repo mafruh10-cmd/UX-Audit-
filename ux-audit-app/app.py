@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 
 import urllib.request as _urllib_req
+import urllib.parse as _urllib_parse
 from html.parser import HTMLParser
 
 from flask import Flask, Response, jsonify, render_template, request, stream_with_context
@@ -244,6 +245,44 @@ Use real content from the redesign. Only include sections present in the actual 
 Start your response directly with { — no preamble."""
 
 # ─── Website context fetcher ──────────────────────────────────────────────────
+
+def _verify_email(email):
+    """
+    Check email deliverability via Abstract API.
+    Returns (is_valid: bool, error_message: str | None).
+    If the API key is missing or the call fails, we fail open (allow the email through)
+    so a network hiccup never blocks a real user from downloading their report.
+    """
+    api_key = os.environ.get("ABSTRACT_EMAIL_API_KEY", "")
+    if not api_key:
+        return True, None  # not configured — skip check
+
+    try:
+        url = (
+            f"https://emailvalidation.abstractapi.com/v1/"
+            f"?api_key={api_key}&email={_urllib_parse.quote(email, safe='')}"
+        )
+        req = _urllib_req.Request(url, headers={"User-Agent": "UXAudit/1.0"})
+        with _urllib_req.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+
+        deliverability   = data.get("deliverability", "UNKNOWN")
+        is_disposable    = data.get("is_disposable_email", {}).get("value", False)
+        is_valid_format  = data.get("is_valid_format", {}).get("value", True)
+
+        if not is_valid_format:
+            return False, "Please enter a valid email address."
+        if is_disposable:
+            return False, "Disposable email addresses are not accepted. Please use your real email."
+        if deliverability == "UNDELIVERABLE":
+            return False, "This email address doesn't appear to exist. Please double-check it."
+
+        return True, None
+
+    except Exception as e:
+        print(f"[warn] Email verification failed ({e}) — allowing through")
+        return True, None  # fail open on any error
+
 
 def _fetch_website_context(url):
     try:
@@ -532,6 +571,11 @@ def download_report(sid):
 
     if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
         return jsonify({"error": "Please enter a valid email address"}), 400
+
+    # Verify email deliverability via Abstract API (fails open on error)
+    is_valid, verify_error = _verify_email(email)
+    if not is_valid:
+        return jsonify({"error": verify_error}), 400
 
     # Analysis JSON + original image are passed from the client.
     # This avoids server-side session dependency, which breaks in serverless environments
