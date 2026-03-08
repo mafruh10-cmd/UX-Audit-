@@ -441,6 +441,23 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
+// ── Image compression ────────────────────────────
+function _compressImage(dataUrl, maxWidth, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const scale  = Math.min(1, maxWidth / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl); // fallback: use original if compression fails
+    img.src = dataUrl;
+  });
+}
+
 // ── Drop zone ────────────────────────────────────
 const dropZone  = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -467,14 +484,17 @@ function handleFile(file) {
   hideUploadErr();
 
   selectedFile     = file;
-  selectedFileMime = file.type || 'image/png';
+  selectedFileMime = 'image/jpeg'; // always compress to JPEG
   const reader = new FileReader();
   reader.onload = e => {
-    const dataUrl = e.target.result;
-    // Store base64 content (strip the data:...;base64, prefix)
-    selectedFileB64 = dataUrl.split(',')[1] || '';
-    document.getElementById('previewImg').src = dataUrl;
-    document.getElementById('thumbImg').src   = dataUrl;
+    const originalDataUrl = e.target.result;
+    document.getElementById('previewImg').src = originalDataUrl;
+    document.getElementById('thumbImg').src   = originalDataUrl;
+    // Compress to JPEG ≤ 1600px wide at 0.82 quality (~200-400 KB)
+    // so the base64 stays well under Vercel's 4.5 MB POST body limit
+    _compressImage(originalDataUrl, 1600, 0.82).then(compressed => {
+      selectedFileB64 = compressed.split(',')[1] || '';
+    });
   };
   reader.readAsDataURL(file);
   document.getElementById('previewName').textContent = file.name;
