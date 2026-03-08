@@ -203,6 +203,19 @@ body{
 .form-input.error{border-color:#DC2626;}
 .form-error{font-size:11px;color:#DC2626;margin-top:4px;display:none;}
 
+/* ── Email validation spinner ── */
+.email-wrap{position:relative;}
+.email-spin{
+  display:none;position:absolute;right:12px;top:50%;
+  transform:translateY(-50%);
+  width:16px;height:16px;
+  border:2px solid var(--cyan-mid);border-top-color:var(--cyan);
+  border-radius:50%;animation:spin .7s linear infinite;
+  pointer-events:none;
+}
+.email-wrap.validating .email-spin{display:block;}
+.email-wrap.validating .form-input{padding-right:38px;}
+
 /* ── Done screen ── */
 .done-icon{
   width:64px;height:64px;background:var(--cyan-light);border-radius:50%;
@@ -362,7 +375,10 @@ body{
         <label class="form-label">
           Email address <span style="color:var(--cyan);">*</span>
         </label>
-        <input type="email" id="inputEmail" class="form-input" placeholder="jane@company.com" required/>
+        <div class="email-wrap" id="emailWrap">
+          <input type="email" id="inputEmail" class="form-input" placeholder="jane@company.com" required/>
+          <div class="email-spin"></div>
+        </div>
         <div class="form-error" id="emailError">Please enter a valid email address.</div>
       </div>
       <div style="margin-top:20px;">
@@ -688,6 +704,10 @@ async function handleDownload(mode) {
   document.getElementById('inputEmail').classList.remove('error');
   document.getElementById('emailError').style.display = 'none';
 
+  // Show spinner inside the email field while validating + preparing
+  const emailWrap = document.getElementById('emailWrap');
+  emailWrap.classList.add('validating');
+
   const dlBtn = document.getElementById('downloadBtn');
   dlBtn.disabled = true;
   dlBtn.textContent = 'Preparing report…';
@@ -723,11 +743,14 @@ async function handleDownload(mode) {
       window.open(reportUrl, '_blank');
     }
 
+    emailWrap.classList.remove('validating');
     show('screen-done');
 
   } catch (err) {
+    emailWrap.classList.remove('validating');
     dlBtn.disabled    = false;
     dlBtn.textContent = 'Download Report';
+    document.getElementById('inputEmail').classList.add('error');
     document.getElementById('emailError').textContent = err.message;
     document.getElementById('emailError').style.display = 'block';
   }
