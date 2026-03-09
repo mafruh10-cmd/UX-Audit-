@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 13px; color: #1a1a1a;
+    background: #fff; height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  .header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #E5E7EB;
+    flex-shrink: 0;
+  }
+  .header h1 { font-size: 14px; font-weight: 700; color: #0A0A0A; }
+  .header p  { font-size: 11px; color: #737373; margin-top: 3px; }
+
+  .body {
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    flex: 1; overflow-y: auto;
+  }
+
+  label {
+    font-size: 11px; font-weight: 600; color: #525252;
+    text-transform: uppercase; letter-spacing: .06em;
+    display: block; margin-bottom: 5px;
+  }
+
+  textarea {
+    width: 100%; height: 260px;
+    border: 1px solid #D1D5DB; border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px; font-family: 'SF Mono', Menlo, 'Fira Code', monospace;
+    color: #1a1a1a; line-height: 1.6; resize: vertical; outline: none;
+    background: #FAFAFA;
+  }
+  textarea:focus { border-color: #0066FF; background: #fff; box-shadow: 0 0 0 3px rgba(0,102,255,.1); }
+
+  .hint {
+    font-size: 11px; color: #737373; line-height: 1.5;
+    background: #F5F7FA; border-radius: 6px;
+    padding: 8px 12px; border-left: 3px solid #0066FF;
+  }
+
+  .progress-bar {
+    height: 4px; background: #E5E7EB; border-radius: 2px;
+    overflow: hidden; display: none;
+  }
+  .progress-bar.show { display: block; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #0066FF, #00C2FF);
+    border-radius: 2px; width: 0%;
+    transition: width .35s cubic-bezier(.4,0,.2,1);
+  }
+
+  .status {
+    padding: 9px 12px; border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    display: none; line-height: 1.4;
+  }
+  .status.show   { display: block; }
+  .status.loading { background: #EBF3FF; color: #0052CC; }
+  .status.success { background: #DCFCE7; color: #15803D; }
+  .status.error   { background: #FEE2E2; color: #B91C1C; }
+
+  .btn-row { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; height: 36px; border: none; border-radius: 6px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: background .15s;
+  }
+  .btn-primary { background: #0066FF; color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #0052CC; }
+  .btn-primary:disabled { background: #93BBFF; cursor: not-allowed; }
+  .btn-secondary { background: #F3F4F6; color: #525252; border: 1px solid #E5E7EB; }
+  .btn-secondary:hover { background: #E5E7EB; }
+
+  .step-list {
+    list-style: none; display: flex; flex-direction: column; gap: 6px;
+  }
+  .step-list li {
+    font-size: 11px; color: #525252; line-height: 1.5;
+    padding-left: 18px; position: relative;
+  }
+  .step-list li::before {
+    content: counter(step);
+    counter-increment: step;
+    position: absolute; left: 0;
+    font-weight: 700; color: #0066FF;
+  }
+  .step-list { counter-reset: step; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HTML → Figma Builder</h1>
+  <p>Paste a design spec JSON — watch it build live on your canvas</p>
+</div>
+
+<div class="body">
+
+  <div>
+    <label>Design Spec JSON</label>
+    <textarea id="json-input" spellcheck="false"
+      placeholder='Paste the JSON spec here, e.g. wcag22_design_spec.json …'></textarea>
+  </div>
+
+  <div class="hint">
+    Every time Claude generates a design, it also outputs a <code>.json</code> spec file.
+    Copy its contents, paste above, and click Generate.
+  </div>
+
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" id="generate-btn" onclick="generate()">
+      ▶ Generate Design
+    </button>
+    <button class="btn btn-secondary" onclick="cancel()">Cancel</button>
+  </div>
+
+</div>
+
+<script>
+var btn        = document.getElementById('generate-btn');
+var statusEl   = document.getElementById('status');
+var progressBar = document.getElementById('progress-bar');
+var progressFill = document.getElementById('progress-fill');
+
+function setStatus(type, msg) {
+  statusEl.className = 'status show ' + type;
+  statusEl.textContent = msg;
+}
+function setProgress(pct) {
+  progressBar.classList.add('show');
+  progressFill.style.width = pct + '%';
+}
+function reset() {
+  btn.disabled = false;
+  progressBar.classList.remove('show');
+  progressFill.style.width = '0%';
+}
+
+function generate() {
+  var raw = document.getElementById('json-input').value.trim();
+  if (!raw) { setStatus('error', 'Paste a design spec JSON first.'); return; }
+
+  var spec;
+  try { spec = JSON.parse(raw); }
+  catch (e) { setStatus('error', 'Invalid JSON — ' + e.message); return; }
+
+  btn.disabled = true;
+  setProgress(5);
+  setStatus('loading', 'Loading fonts…');
+  parent.postMessage({ pluginMessage: { type: 'generate', spec: spec } }, '*');
+}
+
+function cancel() {
+  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+}
+
+window.onmessage = function (event) {
+  var msg = event.data.pluginMessage;
+  if (!msg) return;
+  if (msg.type === 'progress') {
+    setProgress(msg.pct);
+    setStatus('loading', msg.label);
+  }
+  if (msg.type === 'done') {
+    setProgress(100);
+    setStatus('success', '✓ Design generated on your canvas!');
+    btn.disabled = false;
+  }
+  if (msg.type === 'error') {
+    setStatus('error', 'Error: ' + msg.message);
+    reset();
+  }
+};
+</script>
+</body>
+</html>
