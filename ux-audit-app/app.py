@@ -980,6 +980,9 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         # Cover
         ".cover-section{padding:32px 20px 28px!important;}"
         ".cover-title{font-size:26px!important;line-height:1.2!important;}"
+        ".cover-hdr{margin-bottom:28px!important;}"
+        # Overview card
+        ".overview-card{padding:20px 16px!important;}"
         # Overview: 4-col → 2×2 grid
         ".ov-grid{grid-template-columns:1fr 1fr!important;gap:16px!important;}"
         ".ov-col{border-right:none!important;border-bottom:none!important;"
@@ -990,10 +993,18 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         ".prob-rec-grid{grid-template-columns:1fr!important;}"
         # Sources: 2-col → 1-col
         ".sources-grid{grid-template-columns:1fr!important;}"
+        ".sources-card{padding:20px 16px!important;}"
         # Detail card header: make badge wrap below title on narrow screens
         ".detail-header{flex-wrap:wrap!important;gap:8px!important;}"
         ".detail-body{padding:0 16px 20px!important;}"
         ".detail-header-inner{padding:16px!important;}"
+        # Book a call CTA
+        ".cta-section{padding:28px 20px!important;}"
+        ".cta-title{font-size:18px!important;}"
+        ".cta-btns{flex-direction:column!important;align-items:stretch!important;}"
+        ".cta-btn{text-align:center!important;}"
+        # Dark footer
+        ".dark-cta{padding:40px 20px!important;}"
         "}"
     )
 
@@ -1055,7 +1066,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         'linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),'
         'linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:52px 52px;"></div>'
         '<div style="max-width:860px;margin:0 auto;position:relative;z-index:1;">'
-        f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:48px;"><div></div>{logo_white_tag}</div>'
+        f'<div class="cover-hdr" style="display:flex;justify-content:flex-end;align-items:flex-start;margin-bottom:48px;">{logo_white_tag}</div>'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#F05023;margin-bottom:16px;">UX Audit Report</div>'
         f'<h1 class="cover-title" style="font-size:42px;font-weight:800;color:#fff;line-height:1.1;letter-spacing:-.02em;margin-bottom:8px;">{screen_name}</h1>'
         f'<div style="color:#9CA3AF;font-size:14px;margin-top:16px;">{today}</div>'
@@ -1064,7 +1075,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '<div class="page">'
 
         # Overview — with animated score ring + severity bars
-        '<div class="fade-section" style="background:#fff;border-radius:14px;padding:32px;margin-bottom:20px;'
+        '<div class="fade-section overview-card" style="background:#fff;border-radius:14px;padding:32px;margin-bottom:20px;'
         'box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);">'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:24px;">Audit Overview</div>'
         '<div class="ov-grid" style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:0;align-items:start;">'
@@ -1130,19 +1141,19 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         f'{sources_section}'
 
         # Book a call CTA
-        '<div class="fade-section" style="background:#fff;border-radius:14px;padding:36px 32px;margin-bottom:20px;'
+        '<div class="fade-section cta-section" style="background:#fff;border-radius:14px;padding:36px 32px;margin-bottom:20px;'
         'box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);text-align:center;">'
         '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;'
         'color:#9CA3AF;margin-bottom:10px;">Next Step</div>'
-        '<div style="font-size:22px;font-weight:800;color:#0A0A0A;margin-bottom:8px;">Book a No-Commitment Call</div>'
+        '<div class="cta-title" style="font-size:22px;font-weight:800;color:#0A0A0A;margin-bottom:8px;">Book a No-Commitment Call</div>'
         '<div style="font-size:14px;color:#6B7280;line-height:1.6;max-width:480px;margin:0 auto 24px;">'
         'Walk through the findings together and explore how we can fix them — no pressure, no obligation.'
         '</div>'
-        '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">'
-        '<a href="https://cal.com/saasfactor.co/30min" target="_blank" rel="noopener noreferrer" '
+        '<div class="cta-btns" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">'
+        '<a class="cta-btn" href="https://cal.com/saasfactor.co/30min" target="_blank" rel="noopener noreferrer" '
         'style="display:inline-block;padding:12px 24px;background:#F05023;color:#fff;border-radius:8px;'
         'font-size:14px;font-weight:600;text-decoration:none;">Schedule a Call</a>'
-        '<a href="mailto:mafruh@saasfactor.co" '
+        '<a class="cta-btn" href="mailto:mafruh@saasfactor.co" '
         'style="display:inline-block;padding:12px 24px;background:#F9FAFB;color:#0A0A0A;border-radius:8px;'
         'font-size:14px;font-weight:600;text-decoration:none;border:1px solid #E5E7EB;">Send us an Email</a>'
         '</div></div>'
@@ -1150,7 +1161,7 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         '</div>'
 
         # CTA
-        '<div style="background:#0D0D0D;position:relative;overflow:hidden;padding:52px 48px;text-align:center;">'
+        '<div class="dark-cta" style="background:#0D0D0D;position:relative;overflow:hidden;padding:52px 48px;text-align:center;">'
         '<div style="position:absolute;inset:0;background:'
         'radial-gradient(ellipse 55% 65% at 92% 5%,rgba(240,80,35,.18) 0%,transparent 58%),'
         'radial-gradient(ellipse 38% 45% at 5% 90%,rgba(240,80,35,.10) 0%,transparent 55%);"></div>'
