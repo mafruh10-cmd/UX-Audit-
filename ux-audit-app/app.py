@@ -451,8 +451,14 @@ def audit_stream(sid):
 
         try:
             text = result_box[0].strip()
-            text = re.sub(r"^```(?:json)?\s*", "", text)
-            text = re.sub(r"\s*```$", "", text)
+            # Strip markdown fences (multiline-safe)
+            text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
+            text = re.sub(r"\s*```\s*$", "", text, flags=re.MULTILINE)
+            # Extract just the JSON object — find outermost { ... }
+            start = text.find("{")
+            end   = text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                text = text[start:end + 1]
             analysis = json.loads(text)
 
             issues = analysis.get("issues", [])
