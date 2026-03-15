@@ -201,48 +201,9 @@ Rules:
   Be specific — do not default to x=50, y=50 for all issues.
 """
 
-REDESIGN_HTML_PROMPT = """Based on the UX audit findings above, redesign this UI to fix ALL identified issues.
-
-Design system — AlignUI + shadcn/ui:
-- Font: Inter (include via Google Fonts link tag)
-- Colors: primary #0066FF, background #FAFAFA, card #FFFFFF, border #E5E7EB
-- Text: foreground #0A0A0A, muted #737373
-- Success #16A34A / light #DCFCE7, Warning #CA8A04 / light #FEF9C3, Danger #DC2626 / light #FEE2E2
-- Border-radius: 6px (cards 8px), shadows: 0 1px 3px rgba(0,0,0,.08)
-- Components: Cards (1px border + shadow), Badges (rounded-full pill), Buttons (primary/secondary/outline/ghost),
-  Alert variants (info/success/warning/danger), Stats grid, Accordion (border + chevron), Tables (thead: #F3F4F6)
-
-Apply EVERY recommendation from the audit issues list. Each fix must be visibly implemented.
-
-LAYOUT REQUIREMENTS — CRITICAL, DO NOT SKIP:
-- html and body must have: margin:0; padding:0; height:100%; box-sizing:border-box
-- If the screen has a sidebar: the root wrapper uses display:flex; flex-direction:row; height:100vh
-  The sidebar is a fixed-width column. The right side is display:flex; flex-direction:column; flex:1; overflow:hidden
-- If the screen has a top navigation: it is position:sticky or static at the top inside the right column
-- The MAIN CONTENT AREA must be: flex:1; overflow-y:auto; padding:24px (or similar)
-- NEVER set display:none, visibility:hidden, height:0, or overflow:hidden on the main content area or any of its parent containers
-- ALL content sections visible in the original screenshot (tables, cards, forms, stats, lists, etc.) must be fully rendered in the main content area with realistic placeholder data
-- Do not stop at navigation — the entire screen must be redesigned including every content section below the nav
-
-Output ONLY a complete self-contained HTML file. Embed ALL CSS in a <style> tag (no external CSS files).
-Include Inter via Google Fonts link tag. Must render correctly as a standalone HTML file.
-Start your response directly with <!DOCTYPE html> — no preamble or explanation."""
-
-FIGMA_JSON_PROMPT = """Based on the UX audit findings and redesign above, output a Figma plugin JSON spec.
-
-Output ONLY a valid JSON object with this schema — no explanation, no markdown fences:
-{
-  "meta": { "title": string, "version": "1.0" },
-  "canvas": { "bg": "#FAFAFA", "w": 1440, "h": 900 },
-  "layout": "sidebar" | "full",
-  "header": { "title": string, "subtitle": string },
-  "sidebar": { "groups": [{ "label": string, "items": [{ "label": string, "active": boolean }] }] },
-  "main": { "padding": 40, "sections": [...] }
-}
-Available section types: pageHeader, textSection, accordion, hero, stats, alert, table, cardGrid, list,
-heading, infoBox, cta, keyValue, divider, badgeRow, twoColumn, principle
-Use real content from the redesign. Only include sections present in the actual UI.
-Start your response directly with { — no preamble."""
+# ─── Redesign & Figma features deactivated (moved to separate app) ────────────
+# REDESIGN_HTML_PROMPT = """..."""  (commented out)
+# FIGMA_JSON_PROMPT = """..."""     (commented out)
 
 # ─── Website context fetcher ──────────────────────────────────────────────────
 
@@ -365,9 +326,9 @@ def upload():
                 "analysis":        None,
                 "website_url":     website_url,
                 "website_context": website_context,
-                "redesign_html":   None,
-                "figma_json":      None,
-                "redesign_status": "pending",
+                # "redesign_html":   None,   # deactivated
+                # "figma_json":      None,   # deactivated
+                # "redesign_status": "pending",  # deactivated
             }
         return jsonify({"session_id": sid})
     except Exception as exc:
@@ -612,181 +573,11 @@ def download_report(sid):
     )
 
 
-# ─── Redesign generation ──────────────────────────────────────────────────────
-
-@app.route("/api/redesign/<sid>")
-def redesign_stream(sid):
-    if sid not in sessions:
-        return jsonify({"error": "Session not found"}), 404
-
-    session = sessions[sid]
-
-    # Already done — send immediate complete
-    if session.get("redesign_status") == "ready":
-        def _already_done():
-            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-        return Response(stream_with_context(_already_done()), mimetype="text/event-stream",
-                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
-
-    def _generate():
-        result_box = [None]
-        error_box  = [None]
-        done_evt   = threading.Event()
-
-        def _run():
-            try:
-                if not ANTHROPIC_API_KEY:
-                    raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
-                if not session.get("analysis"):
-                    raise ValueError("Audit analysis not found. Please run the audit first.")
-                client = _OpenAI(api_key=ANTHROPIC_API_KEY, base_url="https://openrouter.ai/api/v1")
-                analysis_text = json.dumps(session["analysis"], indent=2)
-
-                base_content = [
-                    {"type": "text",
-                     "text": f"=== UX AUDIT FINDINGS ===\n{analysis_text}\n\n=== ORIGINAL SCREENSHOT ==="},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{session['media_type']};base64,{session['image_b64']}"},
-                    },
-                ]
-
-                def _call(messages, max_tok, label):
-                    for attempt in range(2):
-                        try:
-                            msg = client.chat.completions.create(
-                                model="anthropic/claude-sonnet-4-6",
-                                max_tokens=max_tok,
-                                messages=messages,
-                                timeout=300,
-                            )
-                            text = msg.choices[0].message.content
-                            print(f"[redesign] {label} returned {len(text)} chars")
-                            return text
-                        except Exception as exc:
-                            err_str = str(exc)
-                            print(f"[redesign] {label} error (attempt {attempt+1}/2): {err_str[:200]}")
-                            if attempt == 0 and any(k in err_str.lower() for k in
-                                                    ("502", "bad gateway", "529", "overload", "rate")):
-                                time.sleep(10)
-                            else:
-                                raise
-                    raise RuntimeError(f"{label} failed after retries")
-
-                # Call 1 — redesigned HTML
-                html_text = _call(
-                    [{"role": "user", "content": base_content + [{"type": "text", "text": REDESIGN_HTML_PROMPT}]}],
-                    max_tok=10000, label="HTML",
-                )
-
-                # Call 2 — Figma JSON (reuse the conversation so Claude knows what it designed)
-                figma_text = _call(
-                    [
-                        {"role": "user", "content": base_content + [{"type": "text", "text": REDESIGN_HTML_PROMPT}]},
-                        {"role": "assistant", "content": html_text},
-                        {"role": "user",     "content": FIGMA_JSON_PROMPT},
-                    ],
-                    max_tok=4000, label="Figma JSON",
-                )
-
-                result_box[0] = (html_text, figma_text)
-            except Exception as exc:
-                print(f"[redesign] Failed: {exc}")
-                error_box[0] = str(exc)
-            finally:
-                done_evt.set()
-
-        threading.Thread(target=_run, daemon=True).start()
-
-        def evt(data):
-            return f"data: {json.dumps(data)}\n\n"
-
-        yield evt({"type": "progress", "label": "Generating redesign & Figma spec…"})
-
-        elapsed = 0
-        while not done_evt.wait(timeout=2.0):
-            elapsed += 2
-            if elapsed >= 420:
-                error_box[0] = "Redesign timed out after 7 minutes."
-                done_evt.set()
-                break
-            yield ": keepalive\n\n"
-
-        if error_box[0]:
-            yield evt({"type": "error", "message": error_box[0]})
-            return
-        if not result_box[0]:
-            yield evt({"type": "error", "message": "Redesign generation returned empty response."})
-            return
-
-        html_text, figma_text = result_box[0]
-
-        # Strip any markdown fences from JSON response
-        figma_clean = re.sub(r'^```(?:json)?\s*', '', figma_text.strip(), flags=re.MULTILINE)
-        figma_clean = re.sub(r'\s*```$', '', figma_clean.strip())
-
-        print(f"[redesign] HTML: {len(html_text)} chars, Figma JSON: {len(figma_clean)} chars")
-
-        if not html_text:
-            yield evt({"type": "error", "message": "Claude did not return redesigned HTML. Please try again."})
-            return
-
-        with _lock:
-            sessions[sid]["redesign_html"]   = html_text
-            sessions[sid]["figma_json"]      = figma_clean
-            sessions[sid]["redesign_status"] = "ready"
-
-        yield evt({"type": "complete"})
-
-    return Response(
-        stream_with_context(_generate()),
-        mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
-    )
-
-
-@app.route("/api/preview-redesign/<sid>")
-def preview_redesign(sid):
-    if sid not in sessions:
-        return jsonify({"error": "Session not found"}), 404
-    s = sessions[sid]
-    if s.get("redesign_status") != "ready" or not s.get("redesign_html"):
-        return jsonify({"error": "Redesign not ready yet"}), 400
-    return Response(s["redesign_html"], mimetype="text/html; charset=utf-8")
-
-
-@app.route("/api/download-redesign/<sid>")
-def download_redesign(sid):
-    if sid not in sessions:
-        return jsonify({"error": "Session not found"}), 404
-    s = sessions[sid]
-    if s.get("redesign_status") != "ready" or not s.get("redesign_html"):
-        return jsonify({"error": "Redesign not ready yet"}), 400
-    screen = s.get("analysis", {}).get("screen_name", "screen")
-    slug   = re.sub(r"[^\w\-]", "_", screen.lower())
-    fname  = f"redesign_{slug}_{datetime.utcnow().strftime('%Y%m%d')}.html"
-    return Response(
-        s["redesign_html"],
-        mimetype="text/html; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
-    )
-
-
-@app.route("/api/download-figma/<sid>")
-def download_figma(sid):
-    if sid not in sessions:
-        return jsonify({"error": "Session not found"}), 404
-    s = sessions[sid]
-    if s.get("redesign_status") != "ready" or not s.get("figma_json"):
-        return jsonify({"error": "Figma spec not ready yet"}), 400
-    screen = s.get("analysis", {}).get("screen_name", "screen")
-    slug   = re.sub(r"[^\w\-]", "_", screen.lower())
-    fname  = f"figma_{slug}_{datetime.utcnow().strftime('%Y%m%d')}.json"
-    return Response(
-        s["figma_json"],
-        mimetype="application/json; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
-    )
+# ─── Redesign & Figma routes — deactivated (moved to separate app) ────────────
+# @app.route("/api/redesign/<sid>")          — redesign_stream()
+# @app.route("/api/preview-redesign/<sid>")  — preview_redesign()
+# @app.route("/api/download-redesign/<sid>") — download_redesign()
+# @app.route("/api/download-figma/<sid>")    — download_figma()
 
 
 # ─── Image annotation ─────────────────────────────────────────────────────────
