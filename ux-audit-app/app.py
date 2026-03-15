@@ -557,7 +557,9 @@ def download_report(sid):
     if not analysis:
         return jsonify({"error": "Report data not found. Please run the audit again."}), 400
 
-    _log_lead(email, name, site, analysis.get("screen_name", "Unknown"))
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    _log_lead(email, name, site, analysis.get("screen_name", "Unknown"),
+              score=analysis.get("overall_score", ""), ip=ip)
 
     # Re-annotate the image with issue markers
     ann_b64, ann_type = annotate_image(image_b64, media_type, analysis.get("issues", []))
@@ -671,30 +673,52 @@ def _load_font(size):
 
 # ─── Lead logger ──────────────────────────────────────────────────────────────
 
-LEADS_CSV_PATH = os.path.join(
-    os.path.expanduser("~"),
-    "Library", "CloudStorage",
-    "GoogleDrive-mafruh@saasfactor.co",
-    "My Drive", "UX Audit Leads.csv",
-)
-_CSV_HEADERS = ["Timestamp", "Email", "Name", "Website", "Screen"]
+SHEETS_WEBHOOK = "https://script.google.com/macros/s/AKfycbzJcZ9rF1Dv-FOjo4mzYBiuB3zVas7S4FGaMgA4jquMStV5l29XDjoDZcsQ8AYrhR3FNw/exec"
 
 
-def _log_lead(email, name, website, screen_name):
-    """Append one row to UX Audit Leads.csv in Google Drive (auto-syncs to Sheets)."""
-    import csv
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    row = [timestamp, email, name or "", website or "", screen_name or ""]
+def _get_location(ip):
+    """Return 'City, Country' string from IP using ip-api.com (free, no key)."""
     try:
-        file_exists = os.path.isfile(LEADS_CSV_PATH)
-        with open(LEADS_CSV_PATH, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            if not file_exists:
-                writer.writerow(_CSV_HEADERS)
-            writer.writerow(row)
-        print(f"[lead_log] Saved: {email}")
-    except Exception as exc:
-        print(f"[lead_log] {exc}")
+        if not ip or ip in ("127.0.0.1", "::1"):
+            return "Local"
+        url = f"http://ip-api.com/json/{ip}?fields=city,country,status"
+        req = _urllib_req.Request(url, headers={"User-Agent": "UXAudit/1.0"})
+        with _urllib_req.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode())
+        if data.get("status") == "success":
+            city    = data.get("city", "")
+            country = data.get("country", "")
+            return f"{city}, {country}".strip(", ")
+    except Exception:
+        pass
+    return ""
+
+
+def _log_lead(email, name, website, screen_name, score="", ip=""):
+    """POST one row to Google Sheets via Apps Script webhook. Runs in background thread."""
+    def _send():
+        try:
+            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+            location  = _get_location(ip)
+            payload   = json.dumps({
+                "timestamp": timestamp,
+                "name":      name      or "",
+                "email":     email     or "",
+                "screen":    screen_name or "",
+                "location":  location,
+                "ip":        ip        or "",
+                "website":   website   or "",
+                "score":     str(score) if score != "" else "",
+            }).encode("utf-8")
+            req = _urllib_req.Request(
+                SHEETS_WEBHOOK, data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            with _urllib_req.urlopen(req, timeout=10) as resp:
+                print(f"[lead_log] Sheet: {resp.read().decode()[:80]}")
+        except Exception as exc:
+            print(f"[lead_log] {exc}")
+    threading.Thread(target=_send, daemon=True).start()
 
 
 # ─── Report builder ───────────────────────────────────────────────────────────
