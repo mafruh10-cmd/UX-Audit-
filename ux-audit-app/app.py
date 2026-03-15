@@ -643,9 +643,9 @@ def annotate_image(image_b64, media_type, issues):
 
         result = Image.alpha_composite(img, overlay).convert("RGB")
         out = io.BytesIO()
-        result.save(out, format="PNG", optimize=True)
+        result.save(out, format="JPEG", quality=85, optimize=True)
         out.seek(0)
-        return base64.b64encode(out.read()).decode(), "image/png"
+        return base64.b64encode(out.read()).decode(), "image/jpeg"
     except Exception as exc:
         print(f"[annotate_image] {exc}")
         return image_b64, media_type
