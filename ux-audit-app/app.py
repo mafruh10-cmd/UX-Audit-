@@ -1129,6 +1129,24 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         # Sources
         f'{sources_section}'
 
+        # Book a call CTA
+        '<div class="fade-section" style="background:#fff;border-radius:14px;padding:36px 32px;margin-bottom:20px;'
+        'box-shadow:0 1px 3px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.04);text-align:center;">'
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;'
+        'color:#9CA3AF;margin-bottom:10px;">Next Step</div>'
+        '<div style="font-size:22px;font-weight:800;color:#0A0A0A;margin-bottom:8px;">Book a No-Commitment Call</div>'
+        '<div style="font-size:14px;color:#6B7280;line-height:1.6;max-width:480px;margin:0 auto 24px;">'
+        'Walk through the findings together and explore how we can fix them — no pressure, no obligation.'
+        '</div>'
+        '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">'
+        '<a href="https://cal.com/saasfactor.co/30min" target="_blank" rel="noopener noreferrer" '
+        'style="display:inline-block;padding:12px 24px;background:#F05023;color:#fff;border-radius:8px;'
+        'font-size:14px;font-weight:600;text-decoration:none;">Schedule a Call</a>'
+        '<a href="mailto:mafruh@saasfactor.co" '
+        'style="display:inline-block;padding:12px 24px;background:#F9FAFB;color:#0A0A0A;border-radius:8px;'
+        'font-size:14px;font-weight:600;text-decoration:none;border:1px solid #E5E7EB;">Send us an Email</a>'
+        '</div></div>'
+
         '</div>'
 
         # CTA
