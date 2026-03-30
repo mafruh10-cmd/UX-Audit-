@@ -4,6 +4,15 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>UX Audit — Saasfactor</title>
+<link rel="canonical" href="https://saasfactor.co/tools/uxaudit"/>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VR84FFNNFV"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-VR84FFNNFV');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
@@ -440,6 +449,8 @@ const STEPS = [
   'Generating audit report',
 ];
 
+const BASE = '/tools/uxaudit'; // proxy base path — all API calls route through saasfactor.co
+
 let sessionId       = null;
 let selectedFile    = null;
 let selectedFileB64 = '';    // base64 of original image (no data: prefix)
@@ -456,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function checkServer() {
   try {
-    const res = await fetch('/api/health', { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) return;
   } catch (_) {}
   document.getElementById('offlineBanner').style.display = 'flex';
@@ -565,8 +576,9 @@ async function startAudit() {
 
   let res;
   try {
-    res = await fetch('/api/upload', { method: 'POST', body: fd });
+    res = await fetch(`${BASE}/api/upload`, { method: 'POST', body: fd });
     if (!res.ok) { const j = await res.json(); throw new Error(j.error || 'Upload failed'); }
+    gtag('event', 'audit_started');
   } catch (e) {
     const msg = e.message === 'Failed to fetch'
       ? 'Cannot reach the server. Make sure ./run.sh is running, then refresh.'
@@ -577,12 +589,12 @@ async function startAudit() {
   const { session_id } = await res.json();
   sessionId = session_id;
 
-  const es = new EventSource(`/api/audit/${session_id}`);
+  const es = new EventSource(`${BASE}/api/audit/${session_id}`);
 
   es.onmessage = e => {
     const d = JSON.parse(e.data);
     if (d.type === 'step')     updateStep(d.step, d.status, d.label);
-    if (d.type === 'complete') { es.close(); auditData = d; fillReadyScreen(d); show('screen-ready'); }
+    if (d.type === 'complete') { es.close(); auditData = d; fillReadyScreen(d); show('screen-ready'); gtag('event', 'audit_completed'); }
     if (d.type === 'error')    { es.close(); showProcError(d.message); }
   };
 
@@ -713,7 +725,7 @@ async function handleDownload(mode) {
   dlBtn.textContent = 'Preparing report…';
 
   try {
-    const res = await fetch(`/api/download/${sessionId}`, {
+    const res = await fetch(`${BASE}/api/download/${sessionId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -737,6 +749,7 @@ async function handleDownload(mode) {
     const slug = (auditData?.screen_name || 'screen').replace(/[^\w]/g, '_').toLowerCase();
     reportFilename = `ux_audit_${slug}.html`;
 
+    gtag('event', 'report_downloaded', { mode });
     if (mode === 'download') {
       _triggerDownload(reportUrl, reportFilename);
     } else {

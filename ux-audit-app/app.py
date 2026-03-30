@@ -282,17 +282,31 @@ def _fetch_website_context(url):
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
-@app.route("/")
+# Served under /tools/uxaudit when proxied via Cloudflare Worker from saasfactor.co.
+# The Blueprint prefix ensures all API calls resolve correctly under that path.
+
+from flask import Blueprint
+
+bp = Blueprint("uxaudit", __name__, url_prefix="/tools/uxaudit")
+
+@bp.route("/")
+@bp.route("")
 def index():
     return render_template("index.html", logo_dark=LOGO_DARK_B64, logo_white=LOGO_WHITE_B64)
 
 
-@app.route("/api/health")
+@bp.route("/api/health")
 def health():
     return jsonify({"ok": True})
 
 
-@app.route("/api/upload", methods=["POST"])
+# Block Google from indexing the raw Vercel URL — canonical is saasfactor.co/tools/uxaudit
+@app.route("/robots.txt")
+def robots():
+    return "User-agent: *\nDisallow: /\n", 200, {"Content-Type": "text/plain"}
+
+
+@bp.route("/api/upload", methods=["POST"])
 def upload():
     try:
         if "file" not in request.files:
@@ -335,7 +349,7 @@ def upload():
         return jsonify({"error": f"Upload failed: {exc}"}), 500
 
 
-@app.route("/api/audit/<sid>")
+@bp.route("/api/audit/<sid>")
 def audit_stream(sid):
     if sid not in sessions:
         return jsonify({"error": "Session not found"}), 404
@@ -530,7 +544,7 @@ def audit_stream(sid):
     )
 
 
-@app.route("/api/download/<sid>", methods=["POST"])
+@bp.route("/api/download/<sid>", methods=["POST"])
 def download_report(sid):
     data = request.get_json(force=True) or {}
     email = data.get("email", "").strip()
@@ -1210,6 +1224,10 @@ def _build_report(analysis, image_b64, media_type, user_name, user_website):
         "</body></html>"
     )
 
+
+# ─── Register Blueprint ───────────────────────────────────────────────────────
+
+app.register_blueprint(bp)
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
