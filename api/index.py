@@ -6,27 +6,29 @@ import traceback
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(root, 'ux-audit-app'))
 
+# app must be assigned at module level for @vercel/python static analysis
+app = None
 _err = None
+
 try:
-    from app import app
+    from app import app as _imported_app
+    app = _imported_app
 except Exception:
     _err = traceback.format_exc()
 
-if _err:
-    # Raw WSGI fallback — no Flask needed
-    def app(environ, start_response):
-        info = {
+if app is None:
+    # Fallback Flask app — surfaces the import error as JSON
+    import flask as _flask
+    _fallback = _flask.Flask(__name__)
+
+    @_fallback.route('/', defaults={'path': ''})
+    @_fallback.route('/<path:path>')
+    def _error_route(path):
+        return _flask.jsonify({
             "import_error": _err,
             "root": root,
             "root_exists": os.path.exists(root),
-            "root_files": os.listdir(root)[:30] if os.path.exists(root) else [],
-            "ux_audit_app_exists": os.path.exists(os.path.join(root, "ux-audit-app")),
             "python": sys.version,
-            "sys_path": sys.path[:8],
-        }
-        body = json.dumps(info, indent=2).encode()
-        start_response("500 Error", [
-            ("Content-Type", "application/json"),
-            ("Content-Length", str(len(body))),
-        ])
-        return [body]
+        }), 500
+
+    app = _fallback
