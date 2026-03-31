@@ -1,24 +1,12 @@
 {
   "builds": [
     {
-      "src": "tools/ux-roi-calculator/**/*",
-      "use": "@vercel/static"
-    },
-    {
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb" }
     }
   ],
   "routes": [
-    {
-      "src": "/tools/ux-roi-calculator/assets/(.*)",
-      "dest": "/tools/ux-roi-calculator/assets/$1"
-    },
-    {
-      "src": "/tools/ux-roi-calculator(.*)",
-      "dest": "/tools/ux-roi-calculator/index.html"
-    },
     {
       "src": "/(.*)",
       "dest": "api/index.py"

@@ -15,7 +15,7 @@ import urllib.request as _urllib_req
 import urllib.parse as _urllib_parse
 from html.parser import HTMLParser
 
-from flask import Flask, Response, jsonify, render_template, request, stream_with_context
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory, stream_with_context
 from flask_cors import CORS
 
 try:
@@ -304,6 +304,18 @@ def health():
 @app.route("/robots.txt")
 def robots():
     return "User-agent: *\nDisallow: /\n", 200, {"Content-Type": "text/plain"}
+
+
+# ─── UX ROI Calculator (static React build) ───────────────────────────────────
+_CALC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "ux-roi-calculator")
+
+@app.route("/tools/ux-roi-calculator", strict_slashes=False)
+def ux_roi_calculator_index():
+    return send_from_directory(_CALC_DIR, "index.html")
+
+@app.route("/tools/ux-roi-calculator/assets/<path:filename>")
+def ux_roi_calculator_assets(filename):
+    return send_from_directory(os.path.join(_CALC_DIR, "assets"), filename)
 
 
 @bp.route("/api/upload", methods=["POST"])
