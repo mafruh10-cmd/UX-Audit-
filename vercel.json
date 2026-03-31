@@ -3,7 +3,10 @@
     {
       "src": "api/index.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb" }
+      "config": {
+        "maxLambdaSize": "15mb",
+        "includeFiles": ["tools/ux-roi-calculator/**", "ux-audit-app/**"]
+      }
     }
   ],
   "routes": [
