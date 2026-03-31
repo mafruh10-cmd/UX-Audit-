@@ -5,7 +5,7 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
-        "includeFiles": ["tools/ux-roi-calculator/**", "ux-audit-app/**"]
+        "includeFiles": ["tools/ux-roi-calculator/**", "tools/startup-valuation-calculator/**", "ux-audit-app/**"]
       }
     }
   ],

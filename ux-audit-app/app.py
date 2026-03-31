@@ -318,6 +318,18 @@ def ux_roi_calculator_assets(filename):
     return send_from_directory(os.path.join(_CALC_DIR, "assets"), filename)
 
 
+# ─── Startup Valuation Calculator (static React build) ────────────────────────
+_VAL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools", "startup-valuation-calculator")
+
+@app.route("/tools/startup-valuation-calculator", strict_slashes=False)
+def startup_valuation_index():
+    return send_from_directory(_VAL_DIR, "index.html")
+
+@app.route("/tools/startup-valuation-calculator/assets/<path:filename>")
+def startup_valuation_assets(filename):
+    return send_from_directory(os.path.join(_VAL_DIR, "assets"), filename)
+
+
 @bp.route("/api/upload", methods=["POST"])
 def upload():
     try:
