@@ -282,12 +282,12 @@ def _fetch_website_context(url):
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
-# Served under /tools/uxaudit when proxied via Cloudflare Worker from saasfactor.co.
+# Served under /tools/saas-ux-audit when proxied via Cloudflare Worker from saasfactor.co.
 # The Blueprint prefix ensures all API calls resolve correctly under that path.
 
 from flask import Blueprint
 
-bp = Blueprint("uxaudit", __name__, url_prefix="/tools/uxaudit")
+bp = Blueprint("uxaudit", __name__, url_prefix="/tools/saas-ux-audit")
 
 @bp.route("/")
 @bp.route("")
@@ -300,7 +300,7 @@ def health():
     return jsonify({"ok": True})
 
 
-# Block Google from indexing the raw Vercel URL — canonical is saasfactor.co/tools/uxaudit
+# Block Google from indexing the raw Vercel URL — canonical is saasfactor.co/tools/saas-ux-audit
 @app.route("/robots.txt")
 def robots():
     return "User-agent: *\nDisallow: /\n", 200, {"Content-Type": "text/plain"}
